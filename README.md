@@ -79,7 +79,9 @@ docs/         SRS, RTM, change requests, risk register, sprint log
 
 ## Quy ước
 
-- Quy tắc nghiệp vụ và quy trình làm việc: xem [CLAUDE.md](CLAUDE.md).
+- Yêu cầu và quy tắc nghiệp vụ: xem [docs/SRS.md](docs/SRS.md).
+- Trước khi code một Sprint: trình bày kế hoạch, chờ duyệt. Tính năng ngoài phạm vi ghi vào [docs/change-requests.md](docs/change-requests.md).
+- Khi sửa lỗi: viết test tái hiện lỗi trước rồi mới sửa.
 - Mỗi yêu cầu có mã `REQ-xxx`, truy vết trong [docs/RTM.md](docs/RTM.md).
 - Commit theo Conventional Commits: `feat(inventory): ...`, `fix(pos): ...`, `test: ...`.
 - Lỗi API luôn có dạng `{ "code": "...", "message": "...", "details": ... }`. Mỗi phản hồi có header `x-request-id`; hãy ghi lại id này khi báo lỗi.

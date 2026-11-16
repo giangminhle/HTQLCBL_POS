@@ -25,7 +25,7 @@ Ngoài phạm vi: thương mại điện tử, kế toán tổng hợp, quản l
 | HĐĐT | Hóa đơn điện tử |
 
 ### 1.4 Tài liệu tham chiếu
-- `CLAUDE.md` – bối cảnh, công nghệ, quy tắc nghiệp vụ.
+- `README.md` – công nghệ, cách chạy, quy ước làm việc.
 - `docs/RTM.md` – ma trận truy vết yêu cầu.
 
 ## 2. Mô tả tổng quan
@@ -43,7 +43,7 @@ Kiến trúc modular monolith (NestJS) + PostgreSQL. Hai ứng dụng web React 
 | ACCOUNTANT | Chi nhánh của mình | Báo cáo doanh thu, đối soát |
 
 ### 2.3 Ràng buộc
-Xem `CLAUDE.md` mục *Công nghệ*. Tiền tệ VND lưu số nguyên. Giao diện tiếng Việt.
+Monorepo pnpm, TypeScript strict; NestJS + Prisma + PostgreSQL 16; React 18 + Vite; POS là PWA dùng Dexie (IndexedDB). Tích hợp bên ngoài qua adapter, mặc định MOCK. Tiền tệ VND lưu số nguyên. Giao diện tiếng Việt; mã nguồn và commit bằng tiếng Anh.
 
 ### 2.4 Giả định
 - Mỗi quầy có một máy POS chạy trình duyệt Chromium hiện đại.

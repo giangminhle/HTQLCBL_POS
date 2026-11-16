@@ -9,3 +9,8 @@ coverage/
 .DS_Store
 playwright-report/
 test-results/
+
+# AI assistant files (kept locally, not published)
+CLAUDE.md
+CLAUDE.local.md
+.claude/
