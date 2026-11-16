@@ -3,7 +3,7 @@
 module.exports = {
   moduleFileExtensions: ['js', 'json', 'ts'],
   rootDir: '.',
-  testMatch: ['<rootDir>/src/**/*.spec.ts'],
+  testMatch: ['<rootDir>/src/**/*.spec.ts', '<rootDir>/test/**/*.spec.ts'],
   transform: { '^.+\.ts$': ['ts-jest', { tsconfig: 'tsconfig.json' }] },
   collectCoverageFrom: ['src/**/*.ts', '!src/main.ts'],
   testEnvironment: 'node',
