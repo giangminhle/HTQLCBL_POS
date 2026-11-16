@@ -1,0 +1,74 @@
+# docker compose up --build   → postgres :5432, api :3000 (/docs), admin :5173, pos :5174
+# Variables come from .env (copy .env.example); defaults below let it run without one.
+name: retailchain
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-retail}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-retail_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-retailchain}
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      API_PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-retail}:${POSTGRES_PASSWORD:-retail_dev_password}@postgres:5432/${POSTGRES_DB:-retailchain}?schema=public
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:5174}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-me-access-secret-at-least-32-chars}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-me-refresh-secret-at-least-32-chars}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
+      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-7d}
+      PAYMENT_ADAPTER: ${PAYMENT_ADAPTER:-mock}
+      EINVOICE_ADAPTER: ${EINVOICE_ADAPTER:-mock}
+      SMS_ADAPTER: ${SMS_ADAPTER:-mock}
+    ports:
+      - '${API_PORT:-3000}:3000'
+
+  admin:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+      args:
+        APP: admin
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - '${ADMIN_PORT:-5173}:80'
+
+  pos:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+      args:
+        APP: pos
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - '${POS_PORT:-5174}:80'
+
+volumes:
+  pgdata:
