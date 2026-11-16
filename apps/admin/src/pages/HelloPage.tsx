@@ -6,19 +6,19 @@ interface Props {
   appName: string;
 }
 
-/** Sprint 0 smoke page: proves the frontend can reach GET /health. */
+/** Dashboard placeholder: proves the frontend can reach GET /health. Reports arrive in later sprints. */
 export function HelloPage({ api, appName }: Props) {
   const health = useQuery({
     queryKey: ['health'],
-    queryFn: () => api.get('/health', healthResponseSchema),
+    queryFn: () => api.get('/health', healthResponseSchema, { auth: false }),
     retry: false,
   });
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col justify-center gap-6 p-6">
-      <h1 className="text-3xl font-bold text-slate-800">Xin chào – {appName}</h1>
+    <section className="flex max-w-xl flex-col gap-6">
+      <h1 className="text-2xl font-bold text-slate-800">Xin chào – {appName}</h1>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm" aria-live="polite">
+      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm" aria-live="polite">
         <h2 className="mb-2 font-semibold text-slate-700">Trạng thái hệ thống</h2>
         {health.isPending && <p className="text-slate-500">Đang kiểm tra kết nối…</p>}
         {health.isError && (
@@ -48,7 +48,7 @@ export function HelloPage({ api, appName }: Props) {
         >
           Kiểm tra lại
         </button>
-      </section>
-    </main>
+      </div>
+    </section>
   );
 }

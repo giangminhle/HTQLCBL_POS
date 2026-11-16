@@ -1,19 +1,66 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import { api } from './lib/api';
+import type { AuthSession } from '@retailchain/shared';
+import { AuthProvider } from './auth/AuthContext';
+import { RequireAuth } from './auth/RequireAuth';
+import { Layout } from './components/Layout';
+import { rolesFor } from './menu';
+import { AuditLogsPage } from './pages/AuditLogsPage';
+import { BranchesPage } from './pages/BranchesPage';
+import { ChangePasswordPage } from './pages/ChangePasswordPage';
 import { HelloPage } from './pages/HelloPage';
+import { LoginPage } from './pages/LoginPage';
+import { UsersPage } from './pages/UsersPage';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
+});
 
-export function App() {
+export function App({ auth }: { auth: AuthSession }) {
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<HelloPage api={api} appName="Trang quản trị RetailChain" />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </QueryClientProvider>
+    <AuthProvider auth={auth}>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route
+              element={
+                <RequireAuth>
+                  <Layout />
+                </RequireAuth>
+              }
+            >
+              <Route index element={<HelloPage api={auth.api} appName="Trang quản trị RetailChain" />} />
+              <Route path="change-password" element={<ChangePasswordPage />} />
+              <Route
+                path="branches"
+                element={
+                  <RequireAuth roles={rolesFor('/branches')}>
+                    <BranchesPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="users"
+                element={
+                  <RequireAuth roles={rolesFor('/users')}>
+                    <UsersPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="audit-logs"
+                element={
+                  <RequireAuth roles={rolesFor('/audit-logs')}>
+                    <AuditLogsPage />
+                  </RequireAuth>
+                }
+              />
+            </Route>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </AuthProvider>
   );
 }
