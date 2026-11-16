@@ -36,6 +36,21 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      // ADR-001: tokens live in localStorage/IndexedDB, so XSS must be prevented at the source.
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']",
+          message:
+            'dangerouslySetInnerHTML is forbidden (ADR-001, XSS). Render text, or sanitize in a reviewed helper.',
+        },
+        {
+          selector: 'AssignmentExpression[left.property.name=/^(innerHTML|outerHTML)$/]',
+          message: 'Assigning innerHTML/outerHTML is forbidden (ADR-001, XSS).',
+        },
+      ],
+      'no-eval': 'error',
+      'no-implied-eval': 'error',
     },
   },
   prettier,

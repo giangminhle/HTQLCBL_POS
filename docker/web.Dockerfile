@@ -16,6 +16,10 @@ COPY apps/${APP} apps/${APP}
 RUN pnpm --filter @retailchain/${APP} build && mv apps/${APP}/dist /out
 
 FROM nginx:1.27-alpine AS runtime
-COPY docker/nginx-spa.conf /etc/nginx/conf.d/default.conf
+# connect-src of the CSP: origin of the API (no path). Override at runtime if the API moves.
+ARG VITE_API_URL=http://localhost:3000
+ENV CSP_CONNECT_SRC=${VITE_API_URL}
+COPY docker/nginx-spa.conf.template /etc/nginx/templates/default.conf.template
+COPY docker/security-headers.inc /etc/nginx/security-headers.inc
 COPY --from=build /out /usr/share/nginx/html
 EXPOSE 80
