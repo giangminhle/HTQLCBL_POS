@@ -2,6 +2,7 @@ import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logge
 import { Prisma } from '@prisma/client';
 import { ApiError, ErrorCode } from '@retailchain/shared';
 import type { Request, Response } from 'express';
+import { ZodValidationException } from 'nestjs-zod';
 
 const STATUS_TO_CODE: Record<number, ErrorCode> = {
   [HttpStatus.BAD_REQUEST]: ErrorCode.BAD_REQUEST,
@@ -38,6 +39,16 @@ export class AllExceptionsFilter implements ExceptionFilter {
   }
 
   toApiError(exception: unknown): { status: number; body: ApiError } {
+    if (exception instanceof ZodValidationException) {
+      const issues = exception
+        .getZodError()
+        .issues.map((i) => ({ path: i.path.join('.'), message: i.message }));
+      return {
+        status: HttpStatus.BAD_REQUEST,
+        body: { code: ErrorCode.VALIDATION_ERROR, message: 'Dữ liệu không hợp lệ', details: issues },
+      };
+    }
+
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
       const response = exception.getResponse();

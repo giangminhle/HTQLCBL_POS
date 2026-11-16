@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { parseDuration } from '../common/duration';
 
 const csv = z
   .string()
@@ -10,6 +11,19 @@ const csv = z
       .filter(Boolean),
   );
 
+const duration = (fallback: string) =>
+  z
+    .string()
+    .default(fallback)
+    .refine((v) => {
+      try {
+        parseDuration(v);
+        return true;
+      } catch {
+        return false;
+      }
+    }, 'Expected a duration like 15m, 12h, 7d');
+
 export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   API_PORT: z.coerce.number().int().positive().default(3000),
@@ -18,8 +32,11 @@ export const envSchema = z.object({
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   JWT_ACCESS_SECRET: z.string().min(16),
   JWT_REFRESH_SECRET: z.string().min(16),
-  JWT_ACCESS_TTL: z.string().default('15m'),
-  JWT_REFRESH_TTL: z.string().default('7d'),
+  JWT_ACCESS_TTL: duration('15m'),
+  /** ADR-001: admin web, and OWNER on any app. */
+  JWT_REFRESH_TTL_ADMIN: duration('7d'),
+  /** ADR-001: POS app for CASHIER and BRANCH_MANAGER (long offline periods). */
+  JWT_REFRESH_TTL_POS: duration('30d'),
   PAYMENT_ADAPTER: z.enum(['mock', 'real']).default('mock'),
   EINVOICE_ADAPTER: z.enum(['mock', 'real']).default('mock'),
   SMS_ADAPTER: z.enum(['mock', 'real']).default('mock'),
