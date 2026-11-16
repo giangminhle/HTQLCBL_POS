@@ -1,13 +1,14 @@
 import { PrismaClient } from '@prisma/client';
+import { SEED_BRANCHES, SEED_USERS, seedDatabase } from './seed-data';
 
 const prisma = new PrismaClient();
 
-async function main(): Promise<void> {
-  // Sample data is added together with the models in later sprints.
-  console.log('Seed: nothing to seed in Sprint 0');
-}
-
-main()
+seedDatabase(prisma)
+  .then(() => {
+    console.log(
+      `Seed done: ${SEED_BRANCHES.length} branches, ${SEED_USERS.length} users (see README for passwords)`,
+    );
+  })
   .catch((err: unknown) => {
     console.error(err);
     process.exitCode = 1;
