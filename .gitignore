@@ -4,7 +4,9 @@ dev-dist/
 coverage/
 *.tsbuildinfo
 .env
-.env.local
+.env.*
+!.env.example
+!.env.*.example
 *.log
 .DS_Store
 playwright-report/
