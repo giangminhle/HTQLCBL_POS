@@ -13,8 +13,10 @@
 | R-06 | Máy phát triển chưa cài Docker nên không kiểm tra được `docker compose up` tại chỗ | 3 | 2 | 6 Thấp | Giảm thiểu: CI build image Docker mỗi lần push; cài Docker Desktop khi cần chạy toàn hệ thống | | Mở |
 | R-07 | Lộ khóa bí mật (JWT, API key) trong repo | 2 | 5 | 10 TB | Tránh: `.env` trong `.gitignore`, chỉ commit `.env.example`, kiểm tra env khi khởi động | | Mở |
 | R-08 | Hiệu năng báo cáo không đạt p95 < 300 ms khi dữ liệu lớn | 2 | 3 | 6 Thấp | Giảm thiểu: index theo chi nhánh/ngày, bảng tổng hợp nếu cần, đo bằng dữ liệu mẫu | | Mở |
+| R-09 | Đánh cắp token qua XSS (token lưu ở localStorage/IndexedDB theo ADR-001) | 2 | 4 | 8 TB | **Chấp nhận + Giảm thiểu**: CSP chặt không có unsafe-inline/eval; ESLint cấm dangerouslySetInnerHTML và innerHTML; access token 15 phút; refresh token xoay vòng, dùng lại thì thu hồi mọi phiên; chỉ lưu hash refresh token ở server. Xem docs/design/adr-001-token-storage.md | | Mở |
 
 ## Lịch sử cập nhật
 | Ngày | Thay đổi |
 |---|---|
 | 2026-11-16 | Tạo sổ rủi ro (Sprint 0), R-01 → R-08 |
+| 2026-11-17 | Sprint 1: thêm R-09 (XSS đánh cắp token) theo ADR-001 |

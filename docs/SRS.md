@@ -52,10 +52,50 @@ Monorepo pnpm, TypeScript strict; NestJS + Prisma + PostgreSQL 16; React 18 + Vi
 ## 3. Yêu cầu chức năng
 Mỗi mục: mô tả, tác nhân, luồng chính, luồng phụ, tiêu chí chấp nhận. _[Cần bổ sung ở Sprint tương ứng]_
 
-### 3.1 Xác thực và phân quyền – REQ-AUTH-01
-Đăng nhập, JWT access 15 phút + refresh token, RBAC 5 vai trò, giới hạn dữ liệu theo chi nhánh ở tầng service.
+### 3.1 Xác thực và phân quyền – REQ-AUTH-01, REQ-AUTH-02
+**Tác nhân:** mọi người dùng; OWNER, BRANCH_MANAGER khi quản lý tài khoản.
+
+**Đăng nhập (REQ-AUTH-01)**
+1. Người dùng nhập tên đăng nhập (không phân biệt hoa thường) và mật khẩu. Ứng dụng gửi kèm loại client (`admin`/`pos`).
+2. Hệ thống trả access token (15 phút) và refresh token: 7 ngày cho admin web và cho OWNER; 30 ngày cho app POS với vai
+   trò CASHIER hoặc BRANCH_MANAGER (ADR-001).
+3. Sai tên đăng nhập hay sai mật khẩu đều nhận cùng một thông báo. Sai **5 lần liên tiếp** thì tài khoản bị **khóa 15 phút**,
+   kể cả khi sau đó nhập đúng mật khẩu.
+4. Tài khoản bị ngưng hoạt động không đăng nhập được. Ngưng hoạt động, đổi vai trò hoặc đổi chi nhánh làm mất hiệu lực mọi
+   phiên **ngay lập tức**.
+5. Refresh token xoay vòng sau mỗi lần dùng; nếu một token cũ bị dùng lại thì mọi phiên của người dùng bị thu hồi.
+6. Đăng xuất thu hồi refresh token. Đổi mật khẩu thu hồi mọi phiên khác.
+7. Người dùng mới được tạo và người vừa được đặt lại mật khẩu phải đổi mật khẩu ở lần đăng nhập đầu tiên; trước khi đổi,
+   API chỉ cho phép đổi mật khẩu và đăng xuất.
+8. Chính sách mật khẩu: tối thiểu 8 ký tự, có chữ và số. Lưu bằng argon2id.
+
+**Phân quyền**
+| Chức năng | OWNER | BRANCH_MANAGER | CASHIER | WAREHOUSE_KEEPER | ACCOUNTANT |
+|---|---|---|---|---|---|
+| Xem chi nhánh | Tất cả | Chi nhánh mình | Chi nhánh mình | Chi nhánh mình | Chi nhánh mình |
+| Tạo/sửa chi nhánh | ✓ | | | | |
+| Xem/tạo/sửa người dùng | Tất cả | Chi nhánh mình, chỉ vai trò Thu ngân/Thủ kho/Kế toán | | | |
+| Đặt lại mật khẩu | Mọi người (trừ chính mình) | Nhân viên chi nhánh mình, vai trò thấp hơn | | | |
+| Xem nhật ký thao tác | Tất cả | Chi nhánh mình | | | |
+| Đăng nhập POS | | | ✓ | | |
+
+Người dùng không phải OWNER truy cập dữ liệu chi nhánh khác nhận `403 BRANCH_FORBIDDEN`. Việc kiểm tra nằm ở tầng service,
+không chỉ ở giao diện.
+
+**Đặt lại mật khẩu (REQ-AUTH-02, CR-002)**
+1. Người quản lý chọn nhân viên và bấm "Đặt lại mật khẩu", rồi xác nhận.
+2. Hệ thống sinh mật khẩu tạm 12 ký tự và hiển thị **một lần**. Hệ thống đồng thời bật cờ bắt đổi mật khẩu, mở khóa tài
+   khoản, đặt lại bộ đếm đăng nhập sai, thu hồi mọi phiên cũ và ghi nhật ký `RESET_PASSWORD` (không ghi mật khẩu).
+3. Nhân viên đăng nhập bằng mật khẩu tạm rồi buộc phải đổi mật khẩu.
+
+**Tiêu chí chấp nhận:** xem các test có mã REQ-AUTH-01 và REQ-AUTH-02 trong `docs/RTM.md`.
 
 ### 3.2 Chi nhánh và kho – REQ-BR-01
+- Thông tin chi nhánh: mã (duy nhất, chữ in hoa/số/gạch ngang, không đổi sau khi tạo), tên, địa chỉ, loại (Cửa hàng/Kho),
+  trạng thái hoạt động.
+- Chỉ OWNER được tạo và sửa chi nhánh. Không xóa chi nhánh; chỉ ngưng hoạt động, vì dữ liệu khác còn tham chiếu tới nó.
+- Người dùng (trừ OWNER) thuộc đúng một chi nhánh. Không gán người dùng vào chi nhánh đã ngưng hoạt động.
+- Dữ liệu mẫu: 1 kho tổng (`KHO-TONG`) và 3 cửa hàng (`CH-01`, `CH-02`, `CH-03`).
 ### 3.3 Sản phẩm – REQ-PRD-01
 ### 3.4 Bảng giá – REQ-PRC-01
 Giá bán lấy theo bảng giá chi nhánh; không có thì lấy giá mặc định của sản phẩm.
@@ -75,6 +115,26 @@ Qua interface adapter; mặc định adapter MOCK.
 ### 3.11 Báo cáo – REQ-RPT-01, REQ-RPT-02
 ### 3.12 Nhật ký thao tác – REQ-AUD-01
 Ghi `audit_logs` cho: tạo/hủy hóa đơn, điều chỉnh kho, đổi giá, đổi quyền.
+
+Mỗi bản ghi gồm: người thực hiện (id và tên đăng nhập tại thời điểm đó), chi nhánh, thao tác, đối tượng và id, dữ liệu
+**trước** và **sau**, IP, request id, thời gian. Trường nhạy cảm (mật khẩu, hash, token) luôn bị thay bằng `[REDACTED]`.
+Nhật ký chỉ được thêm, không có API sửa hay xóa.
+
+Đã ghi từ Sprint 1:
+| Thao tác | Khi nào |
+|---|---|
+| LOGIN, LOGIN_FAILED, ACCOUNT_LOCKED, LOGOUT | Đăng nhập thành công/thất bại, bị khóa, đăng xuất |
+| CHANGE_PASSWORD, RESET_PASSWORD | Đổi mật khẩu, đặt lại mật khẩu |
+| REFRESH_TOKEN_REUSE | Phát hiện dùng lại refresh token đã thu hồi |
+| CREATE, UPDATE (User) | Tạo/sửa người dùng, kể cả đổi vai trò (đổi quyền) và khóa |
+| CREATE, UPDATE (Branch) | Tạo/sửa/ngưng hoạt động chi nhánh |
+
+Xem nhật ký: OWNER xem tất cả; BRANCH_MANAGER chỉ xem nhật ký của chi nhánh mình. Lọc theo thao tác, đối tượng, người
+dùng, khoảng ngày; có phân trang.
+
+**Kỹ thuật:** endpoint ghi được đánh dấu `@Audited({ action, entity })`. Interceptor lấy trạng thái **trước** qua hàm đọc
+do module sở hữu entity đăng ký, nên module audit không đọc bảng của module khác. Interceptor chỉ ghi khi thao tác thành
+công.
 
 ## 4. Yêu cầu phi chức năng
 
