@@ -1,0 +1,19 @@
+// Sprint 0: datasource + generator only. Business models are added from Sprint 1 onwards.
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Infrastructure-only key/value table (e.g. seed version). Prisma needs at least one model to generate a client.
+model AppMeta {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("app_meta")
+}
