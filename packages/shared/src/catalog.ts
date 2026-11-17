@@ -93,7 +93,11 @@ function uniqueVariantData(
     skus.add(variant.sku);
     for (const code of variant.barcodes) {
       if (codes.has(code)) {
-        ctx.addIssue({ code: 'custom', path: ['variants', i, 'barcodes'], message: `Mã vạch ${code} bị trùng` });
+        ctx.addIssue({
+          code: 'custom',
+          path: ['variants', i, 'barcodes'],
+          message: `Mã vạch ${code} bị trùng`,
+        });
       }
       codes.add(code);
     }
@@ -345,9 +349,17 @@ export const syncCatalogResponseSchema = z.object({
   nextSince: z.string(),
   categories: z.array(categorySchema),
   products: z.array(productSchema.omit({ variants: true, warnings: true, costPrice: true })),
-  variants: z.array(variantSchema.omit({ barcodes: true, costPrice: true }).extend({ updatedAt: z.string() })),
+  variants: z.array(
+    variantSchema.omit({ barcodes: true, costPrice: true }).extend({ updatedAt: z.string() }),
+  ),
   barcodes: z.array(
-    z.object({ id: z.string(), variantId: z.string(), code: z.string(), deleted: z.boolean(), updatedAt: z.string() }),
+    z.object({
+      id: z.string(),
+      variantId: z.string(),
+      code: z.string(),
+      deleted: z.boolean(),
+      updatedAt: z.string(),
+    }),
   ),
   priceLists: z.array(priceListSchema.omit({ itemCount: true })),
   priceListItems: z.array(

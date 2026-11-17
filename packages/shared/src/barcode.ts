@@ -33,5 +33,8 @@ export function checkBarcode(code: string): BarcodeCheck {
       : { ok: false, message: `Mã ${code} sai chữ số kiểm tra EAN-${code.length}` };
   }
   if (/^[A-Za-z0-9-]{4,32}$/.test(code)) return { ok: true };
-  return { ok: false, message: `Mã vạch ${code} không hợp lệ (EAN-8, EAN-13 hoặc mã nội bộ 4–32 ký tự chữ/số)` };
+  return {
+    ok: false,
+    message: `Mã vạch ${code} không hợp lệ (EAN-8, EAN-13 hoặc mã nội bộ 4–32 ký tự chữ/số)`,
+  };
 }

@@ -49,7 +49,9 @@ const ms = (d: DateLike) => (d instanceof Date ? d.getTime() : new Date(d).getTi
 /** Half-open window [from, to). */
 export function isPriceListEffective(list: PriceListWindow, at: DateLike): boolean {
   const t = ms(at);
-  return list.isActive && ms(list.effectiveFrom) <= t && (list.effectiveTo === null || t < ms(list.effectiveTo));
+  return (
+    list.isActive && ms(list.effectiveFrom) <= t && (list.effectiveTo === null || t < ms(list.effectiveTo))
+  );
 }
 
 export function resolveEffectivePrice(input: PriceResolutionInput): EffectivePrice {

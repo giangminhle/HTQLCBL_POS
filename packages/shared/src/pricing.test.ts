@@ -114,7 +114,10 @@ describe('barcodes', () => {
   it('REQ-PRD-01: accepts valid EAN and internal codes, rejects wrong check digits and junk', () => {
     expect(checkBarcode('4006381333931').ok).toBe(true);
     expect(checkBarcode('SP-0001').ok).toBe(true);
-    expect(checkBarcode('4006381333932')).toMatchObject({ ok: false, message: expect.stringContaining('EAN-13') });
+    expect(checkBarcode('4006381333932')).toMatchObject({
+      ok: false,
+      message: expect.stringContaining('EAN-13'),
+    });
     expect(checkBarcode('ab').ok).toBe(false);
     expect(checkBarcode('có dấu').ok).toBe(false);
   });
