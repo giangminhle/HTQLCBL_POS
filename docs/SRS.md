@@ -97,11 +97,53 @@ không chỉ ở giao diện.
 - Người dùng (trừ OWNER) thuộc đúng một chi nhánh. Không gán người dùng vào chi nhánh đã ngưng hoạt động.
 - Dữ liệu mẫu: 1 kho tổng (`KHO-TONG`) và 3 cửa hàng (`CH-01`, `CH-02`, `CH-03`).
 ### 3.3 Sản phẩm – REQ-PRD-01
+- **Danh mục**: cây nhiều cấp. Không chuyển danh mục vào chính nó hoặc danh mục con của nó. Chỉ xóa được danh mục trống;
+  danh mục còn dữ liệu thì ngưng hoạt động.
+- **Sản phẩm**: SKU (duy nhất), tên, danh mục, đơn vị tính, giá bán mặc định, giá vốn, tồn tối thiểu, trạng thái. Tiền là
+  số nguyên VND.
+- **Biến thể** (CR-004): mọi sản phẩm có ít nhất 1 biến thể; nếu không khai báo, hệ thống tạo biến thể mặc định có SKU
+  trùng SKU sản phẩm. Biến thể có SKU riêng, thuộc tính (dung tích, màu…), và có thể có giá bán, giá vốn, tồn tối thiểu
+  riêng; để trống thì lấy giá trị của sản phẩm. Biến thể bị bỏ khỏi sản phẩm được ngưng bán, không xóa.
+- **Mã vạch**: một biến thể có nhiều mã vạch; mã vạch duy nhất trong toàn chuỗi. Mã 8 hoặc 13 chữ số phải đúng chữ số kiểm
+  tra EAN-8/EAN-13; mã nội bộ 4–32 ký tự chữ/số.
+- **Đơn vị tính**: Sprint 2 một đơn vị cho mỗi sản phẩm. Quy đổi thùng/lốc/lon: CR-003 (hoãn).
+- **Tìm kiếm**: theo tên không phân biệt dấu ("sua" tìm được "Sữa"), theo SKU, theo mã vạch chính xác; lọc theo danh mục
+  (gồm danh mục con) và trạng thái. Tra nhanh theo mã vạch cho máy quét.
+- **Giá vốn**: CASHIER không bao giờ nhận được giá vốn (ẩn ở tầng serializer phía server, không có trong đồng bộ POS).
+  Các vai trò khác xem được.
+- **Phân quyền**: chỉ OWNER tạo/sửa danh mục, sản phẩm, import. Mọi vai trò được xem sản phẩm.
+- **Import CSV**: UTF-8 có hoặc không BOM, phân cách bằng dấu phẩy hoặc chấm phẩy, tối đa 5.000 dòng hoặc 2 MB. Mỗi dòng là
+  một biến thể, các dòng cùng `product_sku` là một sản phẩm; SKU đã có thì cập nhật. **Tất cả hoặc không có gì**: có lỗi thì
+  không ghi gì, trả lỗi theo dòng và cột, kèm file lỗi (CSV gốc thêm cột "Lỗi"). `dryRun=true` chỉ kiểm tra. Có file mẫu.
+
 ### 3.4 Bảng giá – REQ-PRC-01
-Giá bán lấy theo bảng giá chi nhánh; không có thì lấy giá mặc định của sản phẩm.
+- **Quy tắc giá (quy tắc 5, sửa theo CR-004)**: giá bán của một biến thể tại chi nhánh, thời điểm `at` =
+  1) giá trong bảng giá của chi nhánh đang hiệu lực tại `at`; nếu không có thì
+  2) `variant.price`; nếu để trống thì
+  3) `product.defaultPrice`.
+- **Hiệu lực**: khoảng nửa mở [ngày bắt đầu, ngày kết thúc); ngày kết thúc để trống = vô thời hạn. Hai bảng giá đang hoạt
+  động của cùng chi nhánh **không được chồng thời gian**; ràng buộc nằm ở CSDL nên hai yêu cầu gửi đồng thời cũng chỉ một
+  được chấp nhận. Vi phạm trả 409 kèm tên bảng giá bị chồng.
+- **Thao tác**: tạo bảng giá, sửa, "kết thúc bảng giá vào ngày X" (bảng mới có thể bắt đầu đúng ngày X), đặt/bỏ giá từng biến
+  thể, xem giá áp dụng tại một thời điểm.
+- **Phân quyền**: OWNER cho mọi chi nhánh; BRANCH_MANAGER chỉ chi nhánh mình; người khác chỉ xem chi nhánh mình.
+- **Kiểm soát**: mọi thay đổi giá (giá mặc định, giá vốn, giá biến thể, giá trong bảng giá) ghi nhật ký `PRICE_CHANGE` với
+  giá trước/sau. Giá bán thấp hơn giá vốn: cảnh báo, không chặn.
+- **Đồng bộ POS**: `GET /sync/catalog?branchId&since` trả danh mục, sản phẩm, biến thể, mã vạch (cả mã đã xóa), bảng giá của
+  chi nhánh kèm khoảng hiệu lực và các dòng giá thay đổi từ `since`; không có giá vốn. POS tính giá bằng chính hàm của
+  server (`resolveEffectivePrice` trong `packages/shared`) nên giá offline luôn khớp.
 
 ### 3.5 Kho – REQ-INV-01..04
-Tồn kho dạng sổ cái (IMPORT, SALE, RETURN, TRANSFER_OUT, TRANSFER_IN, ADJUSTMENT), `stock_balances` là cache cập nhật trong cùng transaction.
+Tồn kho quản lý theo mô hình sổ cái (Ledger-based Inventory):
+- **Sổ cái biến động kho (`stock_movements`):** Bất biến (append-only), chỉ được thêm, không được sửa/xóa. Gồm các loại: `IMPORT` (nhập hàng), `SALE` (bán lẻ), `RETURN` (trả hàng), `TRANSFER_OUT` (xuất chuyển chi nhánh), `TRANSFER_IN` (nhập chuyển chi nhánh), `ADJUSTMENT` (điều chỉnh sau kiểm kê). Trường `quantity` mang giá trị số nguyên có dấu (dương khi tăng kho, âm khi giảm kho; có ràng buộc check constraint `"quantity" != 0`).
+- **Số dư tồn kho (`stock_balances`):** Cache lưu trữ số lượng tồn hiện thời theo từng cặp `(branchId, variantId)`. Mọi thao tác cập nhật đều đi qua hàm `applyMovements(movements[], tx)` duy nhất trong `InventoryService`, thực hiện khóa dòng (`SELECT ... FOR UPDATE` sắp xếp theo key `${branchId}:${variantId}` chống race condition và deadlock) để đảm bảo tính nhất quán tuyệt đối: `sum(stock_movements.quantity) === stock_balances.quantity`.
+
+**Các quy trình nghiệp vụ:**
+- **REQ-INV-01 (Nhập hàng từ nhà cung cấp):** Quản lý nhà cung cấp (`Supplier`). Phiếu nhập kho (`GoodsReceipt`) có trạng thái `DRAFT` → `COMPLETED`. Khi hoàn thành, tự động tạo các movement `IMPORT` và tăng số dư trong `stock_balances`.
+- **REQ-INV-02 (Chuyển kho liên chi nhánh):** Phiếu chuyển kho (`StockTransfer`) đi qua 3 trạng thái `DRAFT` → `SENT` → `RECEIVED`. Khi `SENT`, trừ tồn kho tại chi nhánh gửi bằng movement `TRANSFER_OUT`. Khi `RECEIVED`, kiểm tra đối soát số lượng nhận thực tế (`receivedQuantity`) với số lượng gửi (`quantity`), tự tính thiếu hụt `shortageQuantity`, và ghi nhận tăng kho tại chi nhánh đích bằng movement `TRANSFER_IN` tương ứng với số lượng thực nhận. Kiểm soát phân quyền: nhân viên quản lý chi nhánh chỉ được thao tác phiếu thuộc chi nhánh của mình.
+- **REQ-INV-03 (Kiểm kê và cân tồn):** Phiếu kiểm kê (`StockCount`) ở trạng thái `DRAFT` lưu giữ snapshot tồn sổ sách (`systemQuantity`). Nhân viên nhập số lượng đếm thực tế (`actualQuantity`). Khi chốt phiếu (`COMPLETED`), hệ thống tự tính chênh lệch `delta = actualQuantity - systemQuantity`, nếu delta khác 0 thì tự sinh movement `ADJUSTMENT` điều chỉnh `stock_balances`.
+- **REQ-INV-04 (Cảnh báo tồn tối thiểu & Thẻ kho):** Endpoint `GET /inventory/low-stock` so sánh tồn kho thực tế với ngưỡng `minStock` (ưu tiên `variant.minStock` rồi đến `product.minStock`), hiển thị danh sách cảnh báo trên web quản trị. Màn hình Thẻ kho (Stock card) hỗ trợ tra cứu toàn bộ lịch sử biến động sổ cái của từng biến thể sản phẩm tại một chi nhánh cụ thể theo mốc thời gian.
+
 
 ### 3.6 Bán hàng tại quầy – REQ-POS-01..05
 Hóa đơn COMPLETED bất biến; đổi trả tạo phiếu RETURN. Hóa đơn offline có id UUID v7 sinh tại máy, đồng bộ idempotent; server luôn nhận hóa đơn offline, tồn âm thì ghi cảnh báo `NEGATIVE_STOCK`.

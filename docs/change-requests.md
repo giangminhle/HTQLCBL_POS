@@ -42,6 +42,8 @@ Người duyệt, ngày, kết luận.
 |---|---|---|---|
 | CR-001 | Đăng nhập offline cho thu ngân khác | 2026-11-17 | Hoãn – xem xét ở Sprint 5 |
 | CR-002 | Đặt lại mật khẩu nhân viên | 2026-11-17 | Đã duyệt – làm trong Sprint 1 |
+| CR-003 | Quy đổi nhiều đơn vị tính | 2026-11-17 | Hoãn – xem xét lại sau Sprint 3 |
+| CR-004 | Giá và thông số theo biến thể (sửa quy tắc 5) | 2026-11-17 | Đã duyệt – làm trong Sprint 2 |
 
 ---
 
@@ -109,3 +111,70 @@ audit).
 
 ### Quyết định
 Đã duyệt ngày 2026-11-17, làm trong Sprint 1.
+
+---
+
+## CR-003: Quy đổi nhiều đơn vị tính
+
+- **Ngày đề xuất:** 2026-11-17
+- **Người đề xuất:** Nhóm phát triển (phát sinh khi lập kế hoạch Sprint 2)
+- **Sprint phát sinh:** Sprint 2
+- **REQ liên quan:** REQ-PRD-01 (đơn vị tính), REQ-INV-01..03, REQ-POS-01
+- **Trạng thái:** Hoãn – xem xét lại sau Sprint 3
+- **Giá trị nghiệp vụ:** **Cao.** Bán lẻ tạp hóa thường nhập theo thùng nhưng bán theo thùng, lốc hoặc lon; thiếu tính
+  năng này thì thu ngân phải tự quy đổi và tồn kho dễ lệch.
+
+### Mô tả
+Một sản phẩm có đơn vị cơ sở (ví dụ lon) và nhiều đơn vị quy đổi (lốc = 6 lon, thùng = 24 lon). Mỗi đơn vị có thể có mã
+vạch và giá riêng. Nhập kho, bán và kiểm kê theo bất kỳ đơn vị nào; sổ cái tồn kho luôn ghi theo đơn vị cơ sở.
+
+### Lý do hoãn
+Sprint 2 dùng một đơn vị cho mỗi sản phẩm. Quy đổi đơn vị ảnh hưởng trực tiếp tới sổ cái tồn kho (`stock_movements`) của
+Sprint 3, nên cần chốt thiết kế tồn kho trước.
+
+### Tác động
+| Khía cạnh | Đánh giá |
+|---|---|
+| Thời gian | Ước lượng O/M/P = 3/5/9 ngày công → E = (3 + 20 + 9)/6 ≈ 5,3 ngày công |
+| Chi phí | Khoảng 5–6 ngày công của 1 người |
+| Kỹ thuật | Bảng `product_units` (hệ số quy đổi), mã vạch và giá theo đơn vị; `getEffectivePrice` thêm tham số đơn vị; sổ cái quy về đơn vị cơ sở; import CSV và đồng bộ POS thêm cột |
+| Phạm vi | Mở rộng REQ-PRD-01, ảnh hưởng REQ-PRC-01, REQ-INV-*, REQ-POS-01 |
+
+### Phương án tạm thời
+Tạo biến thể riêng cho từng cách đóng gói (ví dụ "Bia lon" và "Bia thùng 24") với mã vạch và giá riêng. Nhược điểm: tồn
+kho của hai biến thể không tự quy đổi.
+
+### Quyết định
+Hoãn, xem xét lại sau Sprint 3.
+
+---
+
+## CR-004: Giá và thông số theo biến thể (sửa quy tắc 5)
+
+- **Ngày đề xuất:** 2026-11-17
+- **Người đề xuất:** Nhóm phát triển; chủ dự án mở rộng phạm vi
+- **Sprint phát sinh:** Sprint 2
+- **REQ liên quan:** REQ-PRC-01, REQ-PRD-01
+- **Trạng thái:** Đã duyệt – làm trong Sprint 2
+
+### Mô tả
+- `ProductVariant` có `price`, `costPrice`, `minStock`, cả ba có thể để trống; để trống thì lấy giá trị của `Product`.
+- Mọi sản phẩm luôn có ít nhất 1 biến thể. Sản phẩm không khai báo biến thể được tự tạo một biến thể mặc định.
+- **Quy tắc 5 mới:** giá bán = bảng giá chi nhánh đang hiệu lực → `variant.price` → `product.defaultPrice`.
+- Bảng giá của cùng chi nhánh không được chồng thời gian. Khoảng hiệu lực là `[effectiveFrom, effectiveTo)`,
+  `effectiveTo` để trống nghĩa là vô thời hạn. Ràng buộc nằm ở DB (exclusion constraint).
+
+### Lý do
+Các biến thể của cùng sản phẩm (dầu gội 200 ml và 400 ml) có giá khác nhau. Quy tắc 5 cũ chỉ có một giá mặc định cho
+sản phẩm, nên muốn khác giá phải tách thành sản phẩm riêng hoặc lập bảng giá cho mọi chi nhánh.
+
+### Tác động
+| Khía cạnh | Đánh giá |
+|---|---|
+| Thời gian | Khoảng +1 ngày công trong Sprint 2 (3 cột, thêm một bậc trong hàm giá, test) |
+| Chi phí | Không đáng kể |
+| Kỹ thuật | Thay đổi baseline: CLAUDE.md quy tắc 5, SRS §3.4, RTM REQ-PRC-01. Hàm `getEffectivePrice` trong `shared` dùng chung cho server và POS offline |
+| Phạm vi | Sửa REQ-PRC-01, mở rộng REQ-PRD-01 |
+
+### Quyết định
+Đã duyệt ngày 2026-11-17, làm trong Sprint 2.

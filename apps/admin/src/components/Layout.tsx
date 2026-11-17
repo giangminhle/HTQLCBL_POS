@@ -24,7 +24,7 @@ export function Layout() {
               <NavLink
                 key={m.to}
                 to={m.to}
-                end={m.to === '/'}
+                end
                 className={({ isActive }) =>
                   `rounded px-3 py-2 text-sm ${isActive ? 'bg-slate-800 text-white' : 'text-slate-700 hover:bg-slate-100'}`
                 }

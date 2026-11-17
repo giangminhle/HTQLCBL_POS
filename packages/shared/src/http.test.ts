@@ -85,3 +85,36 @@ describe('createApiClient auth', () => {
     expect((init.headers as Record<string, string>).Authorization).toBeUndefined();
   });
 });
+
+describe('createApiClient upload and text', () => {
+  it('REQ-PRD-01: uploads FormData without forcing a JSON content type', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, ok));
+    const api = createApiClient('http://api', { fetchImpl: fetchMock, getAccessToken: () => 't' });
+    const form = new FormData();
+    form.append('file', new Blob(['a,b']), 'x.csv');
+    await api.upload('/products/import', healthResponseSchema, form, { query: { dryRun: true } });
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('http://api/products/import?dryRun=true');
+    expect(init.body).toBe(form);
+    expect((init.headers as Record<string, string>)['Content-Type']).toBeUndefined();
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer t');
+  });
+
+  it('REQ-PRD-01: getText returns the raw body; errors still use the unified format', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response('product_sku,product_name', { status: 200 }))
+      .mockResolvedValueOnce(jsonResponse(403, { code: 'ROLE_FORBIDDEN', message: 'x' }));
+    const api = createApiClient('http://api', fetchMock);
+    await expect(api.getText('/t')).resolves.toBe('product_sku,product_name');
+    await expect(api.getText('/t')).rejects.toMatchObject({ status: 403, code: 'ROLE_FORBIDDEN' });
+  });
+
+  it('REQ-PRC-01: put and delete send the right method', async () => {
+    const fetchMock = vi.fn().mockImplementation(async () => jsonResponse(200, ok));
+    const api = createApiClient('http://api', fetchMock);
+    await api.put('/a', healthResponseSchema, { x: 1 });
+    await api.delete('/a', healthResponseSchema);
+    expect(fetchMock.mock.calls.map((c) => (c[1] as RequestInit).method)).toEqual(['PUT', 'DELETE']);
+  });
+});

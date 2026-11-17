@@ -248,6 +248,15 @@ export class UsersService implements OnModuleInit {
     await this.prisma.user.update({ where: { id }, data: { tokenVersion: { increment: 1 } } });
   }
 
+  /** Batch describe usernames & full names for other modules without crossing DB boundaries. */
+  async describeUsers(ids: string[]): Promise<Map<string, { username: string; fullName: string }>> {
+    const rows = await this.prisma.user.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, username: true, fullName: true },
+    });
+    return new Map(rows.map((r) => [r.id, { username: r.username, fullName: r.fullName }]));
+  }
+
   // ---------- helpers ----------
 
   private async findPublic(id: string): Promise<PublicUser> {

@@ -19,28 +19,65 @@ const loginBody = (overrides = {}) => ({
 describe('role-based menu (REQ-AUTH-01)', () => {
   const labels = (role: Role) => menuFor(role).map((m) => m.label);
 
-  it('REQ-AUTH-01: OWNER sees branches, users and audit log', () => {
+  it('REQ-AUTH-01: OWNER sees branches, catalog, price lists, import, users and audit log', () => {
     expect(labels(Role.OWNER)).toEqual([
       'Tổng quan',
       'Chi nhánh',
+      'Danh mục',
+      'Sản phẩm',
+      'Nhập sản phẩm (CSV)',
+      'Bảng giá',
+      'Tồn kho & Thẻ kho',
+      'Nhập kho',
+      'Chuyển kho',
+      'Kiểm kê',
+      'Nhà cung cấp',
       'Người dùng',
       'Nhật ký thao tác',
       'Đổi mật khẩu',
     ]);
   });
 
-  it('REQ-AUTH-01: BRANCH_MANAGER sees users and audit log but not branches', () => {
+  it('REQ-AUTH-01: BRANCH_MANAGER sees products, price lists, users and audit log but not branches', () => {
     expect(labels(Role.BRANCH_MANAGER)).toEqual([
       'Tổng quan',
+      'Sản phẩm',
+      'Bảng giá',
+      'Tồn kho & Thẻ kho',
+      'Nhập kho',
+      'Chuyển kho',
+      'Kiểm kê',
+      'Nhà cung cấp',
       'Người dùng',
       'Nhật ký thao tác',
       'Đổi mật khẩu',
     ]);
   });
 
-  it('REQ-AUTH-01: CASHIER, WAREHOUSE_KEEPER, ACCOUNTANT see only overview and change password', () => {
+  it('REQ-PRD-01: WAREHOUSE_KEEPER and ACCOUNTANT see products read-only; CASHIER has no admin catalog', () => {
+    expect(labels(Role.WAREHOUSE_KEEPER)).toEqual([
+      'Tổng quan',
+      'Sản phẩm',
+      'Tồn kho & Thẻ kho',
+      'Nhập kho',
+      'Chuyển kho',
+      'Kiểm kê',
+      'Nhà cung cấp',
+      'Đổi mật khẩu',
+    ]);
+    expect(labels(Role.ACCOUNTANT)).toEqual([
+      'Tổng quan',
+      'Sản phẩm',
+      'Tồn kho & Thẻ kho',
+      'Nhà cung cấp',
+      'Đổi mật khẩu',
+    ]);
+    expect(labels(Role.CASHIER)).toEqual(['Tổng quan', 'Đổi mật khẩu']);
+  });
+
+  it('REQ-AUTH-01: every role keeps overview and change password', () => {
     for (const r of [Role.CASHIER, Role.WAREHOUSE_KEEPER, Role.ACCOUNTANT]) {
-      expect(labels(r)).toEqual(['Tổng quan', 'Đổi mật khẩu']);
+      expect(labels(r)).toEqual(expect.arrayContaining(['Tổng quan', 'Đổi mật khẩu']));
     }
   });
 

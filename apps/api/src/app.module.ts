@@ -11,7 +11,11 @@ import { RolesGuard } from './common/authz/roles.guard';
 import { LoggerModule } from './common/logging/logger.module';
 import { validateEnv } from './config/env';
 import { HealthModule } from './health/health.module';
+import { InventoryModule } from './inventory/inventory.module';
+import { PricingModule } from './pricing/pricing.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { ProductsModule } from './products/products.module';
+import { SyncModule } from './sync/sync.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
@@ -24,6 +28,10 @@ import { UsersModule } from './users/users.module';
     BranchesModule,
     UsersModule,
     AuthModule,
+    ProductsModule,
+    PricingModule,
+    InventoryModule,
+    SyncModule,
   ],
   providers: [
     { provide: APP_PIPE, useClass: ZodValidationPipe },

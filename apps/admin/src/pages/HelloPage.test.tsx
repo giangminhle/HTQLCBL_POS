@@ -5,7 +5,15 @@ import { describe, expect, it, vi } from 'vitest';
 import { HelloPage } from './HelloPage';
 
 function renderWith(get: ApiClient['get']) {
-  const api: ApiClient = { get, post: vi.fn(), patch: vi.fn() };
+  const api: ApiClient = {
+    get,
+    post: vi.fn(),
+    patch: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+    upload: vi.fn(),
+    getText: vi.fn(),
+  };
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
