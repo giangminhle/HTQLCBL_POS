@@ -34,9 +34,12 @@ model Branch {
   createdAt DateTime   @default(now()) @map("created_at")
   updatedAt DateTime   @updatedAt @map("updated_at")
 
-  users      User[]
-  auditLogs  AuditLog[]
-  priceLists PriceList[]
+  users       User[]
+  auditLogs   AuditLog[]
+  priceLists  PriceList[]
+  shifts      Shift[]
+  sales       Sale[]
+  saleReturns SaleReturn[]
 
   @@map("branches")
 }
@@ -74,6 +77,9 @@ model User {
   branch        Branch?        @relation(fields: [branchId], references: [id])
   refreshTokens RefreshToken[]
   auditLogs     AuditLog[]
+  shifts        Shift[]
+  sales         Sale[]
+  saleReturns   SaleReturn[]
 
   @@index([branchId])
   @@map("users")
@@ -199,9 +205,11 @@ model ProductVariant {
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
-  product        Product         @relation(fields: [productId], references: [id])
-  barcodes       Barcode[]
-  priceListItems PriceListItem[]
+  product         Product          @relation(fields: [productId], references: [id])
+  barcodes        Barcode[]
+  priceListItems  PriceListItem[]
+  saleItems       SaleItem[]
+  saleReturnItems SaleReturnItem[]
 
   @@index([productId])
   @@index([updatedAt])
@@ -438,4 +446,156 @@ model PriceListItem {
   @@index([variantId])
   @@index([updatedAt])
   @@map("price_list_items")
+}
+
+// ---------- shifts module (REQ-SHF-01) ----------
+
+enum ShiftStatus {
+  OPEN
+  CLOSED
+}
+
+model Shift {
+  id           String      @id @default(uuid()) @db.Uuid
+  code         String      @unique @db.VarChar(30)
+  branchId     String      @map("branch_id") @db.Uuid
+  cashierId    String      @map("cashier_id") @db.Uuid
+  openingCash  Int         @map("opening_cash")
+  closingCash  Int?        @map("closing_cash")
+  expectedCash Int?        @map("expected_cash")
+  difference   Int?        @map("difference")
+  status       ShiftStatus @default(OPEN)
+  openedAt     DateTime    @default(now()) @map("opened_at")
+  closedAt     DateTime?   @map("closed_at")
+  note         String?     @db.VarChar(500)
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  branch  Branch       @relation(fields: [branchId], references: [id])
+  cashier User         @relation(fields: [cashierId], references: [id])
+  sales   Sale[]
+  returns SaleReturn[]
+
+  @@index([branchId, status])
+  @@index([cashierId, status])
+  @@map("shifts")
+}
+
+// ---------- sales module (REQ-POS-01..04) ----------
+
+enum SaleStatus {
+  COMPLETED
+  RETURNED_PARTIAL
+  RETURNED_FULL
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  QR
+}
+
+model Sale {
+  id              String     @id @db.Uuid
+  code            String     @unique @db.VarChar(35)
+  branchId        String     @map("branch_id") @db.Uuid
+  shiftId         String     @map("shift_id") @db.Uuid
+  cashierId       String     @map("cashier_id") @db.Uuid
+  customerId      String?    @map("customer_id") @db.Uuid
+  subtotal        Int
+  discount        Int        @default(0)
+  total           Int
+  status          SaleStatus @default(COMPLETED)
+  note            String?    @db.VarChar(500)
+  createdAtClient DateTime   @map("created_at_client")
+  createdAtServer DateTime   @default(now()) @map("created_at_server")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+
+  branch   Branch       @relation(fields: [branchId], references: [id])
+  shift    Shift        @relation(fields: [shiftId], references: [id])
+  cashier  User         @relation(fields: [cashierId], references: [id])
+  items    SaleItem[]
+  payments Payment[]
+  returns  SaleReturn[]
+
+  @@index([branchId, createdAtServer])
+  @@index([shiftId])
+  @@index([cashierId])
+  @@map("sales")
+}
+
+model SaleItem {
+  id               String @id @default(uuid()) @db.Uuid
+  saleId           String @map("sale_id") @db.Uuid
+  variantId        String @map("variant_id") @db.Uuid
+  quantity         Int
+  unitPrice        Int    @map("unit_price")
+  discount         Int    @default(0)
+  lineTotal        Int    @map("line_total")
+  returnedQuantity Int    @default(0) @map("returned_quantity")
+
+  sale    Sale             @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  variant ProductVariant   @relation(fields: [variantId], references: [id])
+  returns SaleReturnItem[]
+
+  @@index([saleId])
+  @@index([variantId])
+  @@map("sale_items")
+}
+
+model Payment {
+  id        String        @id @default(uuid()) @db.Uuid
+  saleId    String        @map("sale_id") @db.Uuid
+  method    PaymentMethod
+  amount    Int
+  reference String?       @db.VarChar(100)
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  sale Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@index([saleId])
+  @@map("payments")
+}
+
+model SaleReturn {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique @db.VarChar(35)
+  saleId      String   @map("sale_id") @db.Uuid
+  branchId    String   @map("branch_id") @db.Uuid
+  shiftId     String   @map("shift_id") @db.Uuid
+  cashierId   String   @map("cashier_id") @db.Uuid
+  reason      String   @db.VarChar(255)
+  totalRefund Int      @map("total_refund")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  sale    Sale             @relation(fields: [saleId], references: [id])
+  branch  Branch           @relation(fields: [branchId], references: [id])
+  shift   Shift            @relation(fields: [shiftId], references: [id])
+  cashier User             @relation(fields: [cashierId], references: [id])
+  items   SaleReturnItem[]
+
+  @@index([saleId])
+  @@index([branchId])
+  @@index([shiftId])
+  @@map("sale_returns")
+}
+
+model SaleReturnItem {
+  id           String @id @default(uuid()) @db.Uuid
+  returnId     String @map("return_id") @db.Uuid
+  saleItemId   String @map("sale_item_id") @db.Uuid
+  variantId    String @map("variant_id") @db.Uuid
+  quantity     Int
+  refundAmount Int    @map("refund_amount")
+
+  return   SaleReturn     @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  saleItem SaleItem       @relation(fields: [saleItemId], references: [id])
+  variant  ProductVariant @relation(fields: [variantId], references: [id])
+
+  @@index([returnId])
+  @@index([saleItemId])
+  @@index([variantId])
+  @@map("sale_return_items")
 }

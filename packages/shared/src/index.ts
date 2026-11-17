@@ -12,5 +12,7 @@ export * from './http';
 export * from './pagination';
 export * from './pricing';
 export * from './roles';
+export * from './sales';
 export * from './text';
 export * from './users';
+export * from './uuid';

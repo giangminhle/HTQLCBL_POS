@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+### Added – Sprint 4
+- Quản lý ca làm việc (`Shift`): mở ca thu ngân với tiền mặt đầu ca (`openingCash`), theo dõi doanh thu thời gian thực, chốt ca tự động tính tiền mặt lý thuyết (`expectedCash = openingCash + cashSales - cashReturns`), đối soát với tiền kiểm đếm thực tế (`closingCash`), tính chênh lệch và bắt buộc giải trình nếu có sai lệch. (REQ-SHF-01)
+- Bán hàng tại quầy POS: quét mã vạch EAN-13/SKU auto-focus, tìm kiếm sản phẩm F2, mở thanh toán F9, giỏ hàng sửa số lượng, xóa dòng, chiết khấu dòng hàng; chiết khấu > 10% yêu cầu xác thực cấp quyền tức thời từ Quản lý chi nhánh hoặc Chủ chuỗi (`POST /sales/authorize-discount`). (REQ-POS-01)
+- Thanh toán đa phương thức (`PaymentMethod` CASH, CARD, QR): hỗ trợ chia nhỏ thanh toán (split payment), tự động tính tiền thừa trả khách; tích hợp MOCK PaymentAdapter cho QR payment kèm nút giả lập giao dịch thành công. (REQ-POS-02)
+- Idempotent sale creation: ID đơn hàng là UUID v7 do client sinh (`uuidv7()` tuân thủ RFC 9562); server kiểm tra trùng id, không trừ kho hoặc nhân đôi doanh thu nếu client gửi lại. Bán hàng tự động trừ kho qua movement `SALE` âm trong cùng transaction. (REQ-POS-01, REQ-POS-02)
+- In hóa đơn nhiệt chuẩn 80mm tối ưu bằng CSS `@media print`: trình bày tên cửa hàng, địa chỉ, mã số HĐ, chi tiết dòng hàng, giảm giá, phương thức thanh toán, tiền thừa và mã vạch. (REQ-POS-03)
+- Quy trình Đổi trả hàng (`SaleReturn`): tra cứu theo mã hóa đơn gốc, ràng buộc thời hạn 7 ngày, kiểm soát chặt chẽ số lượng trả không vượt số lượng đã mua trừ đi các lần đổi trả trước đó; tự động hoàn lại tồn kho chi nhánh bằng movement `RETURN` dương qua `InventoryService.applyMovements`, cập nhật trạng thái đơn hàng sang `RETURNED_PARTIAL` hoặc `RETURNED_FULL`. (REQ-POS-04)
+
 ### Added – Sprint 3
 - Quản lý kho theo mô hình sổ cái (Ledger-based): bảng `stock_movements` (bất biến) và bảng cache `stock_balances`. (REQ-INV-01)
 - Hàm duy nhất ghi sổ `applyMovements(movements[], tx)` đồng thời cập nhật cả `stock_movements` và `stock_balances` với row-locking `SELECT ... FOR UPDATE` sắp xếp theo `${branchId}:${variantId}` chống race condition và triệt tiêu deadlock.

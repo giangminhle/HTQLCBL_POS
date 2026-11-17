@@ -15,6 +15,7 @@ import { InventoryModule } from './inventory/inventory.module';
 import { PricingModule } from './pricing/pricing.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProductsModule } from './products/products.module';
+import { SalesModule } from './sales/sales.module';
 import { SyncModule } from './sync/sync.module';
 import { UsersModule } from './users/users.module';
 
@@ -31,6 +32,7 @@ import { UsersModule } from './users/users.module';
     ProductsModule,
     PricingModule,
     InventoryModule,
+    SalesModule,
     SyncModule,
   ],
   providers: [

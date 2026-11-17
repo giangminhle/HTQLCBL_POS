@@ -215,3 +215,35 @@ tương lai cho CH-01 trong khi seed đã có bảng giá vô thời hạn (409 
 ### Tồn đọng
 - Chuẩn bị Sprint 4: POS bán hàng và ca làm việc (REQ-POS-01..04, REQ-SHF-01).
 
+## Sprint 4 – POS bán hàng và ca làm việc (REQ-POS-01..04, REQ-SHF-01)
+
+**Thời gian:** 17/11/2026.  
+**Mục tiêu:** Xây dựng hoàn chỉnh phân hệ bán hàng tại điểm bán (POS) và quản lý ca làm việc ở chế độ trực tuyến (Online), chuẩn bị sẵn sàng cấu trúc dữ liệu cho chế độ ngoại tuyến (Offline) ở Sprint 5:
+- **REQ-SHF-01:** Mở ca, chốt ca, đối soát tiền mặt tự động (tính tiền mặt dự kiến = đầu ca + thu tiền mặt − tiền hoàn trả mặt, so với tiền kiểm đếm thực tế, lưu vết chênh lệch và giải trình).
+- **REQ-POS-01:** Bán hàng bằng quét mã vạch (EAN-13/SKU) và tìm kiếm F2; giỏ hàng hỗ trợ sửa số lượng, xóa dòng, chiết khấu từng dòng (chiết khấu > 10% yêu cầu phê duyệt PIN của Quản lý chi nhánh/Chủ cửa hàng); phím tắt F2, F9, Esc.
+- **REQ-POS-02:** Thanh toán đa phương thức (CASH, CARD, QR) và chia nhỏ thanh toán (split payments), tự tính tiền thừa; tích hợp mock QR payment adapter hiển thị mã QR và nút giả lập thanh toán; API tạo đơn hàng idempotent theo UUID v7.
+- **REQ-POS-03:** In hóa đơn nhiệt chuẩn 80mm tối ưu bằng CSS `@media print`, hiển thị đầy đủ thông tin cửa hàng, số hóa đơn, chi tiết sản phẩm, giảm giá và phương thức thanh toán.
+- **REQ-POS-04:** Đổi trả hàng trong vòng 7 ngày, kiểm tra chặt chẽ số lượng trả không vượt số lượng đã mua trừ đi các lần đã trả trước đó, tự động tạo movement `RETURN` hoàn lại tồn kho chi nhánh qua `InventoryService.applyMovements`, cập nhật trạng thái đơn `RETURNED_PARTIAL` hoặc `RETURNED_FULL`.
+
+### Quyết định kỹ thuật
+| Quyết định | Lý do |
+|---|---|
+| ID hóa đơn là UUID v7 sinh tại Client (`packages/shared/src/uuid.ts`) | Chuẩn bị sẵn sàng cho Sprint 5 Offline Sync: client có thể sinh ID duy nhất có tính sắp xếp thời gian (time-sortable) mà không phụ thuộc DB backend |
+| API `POST /sales` thiết kế idempotent theo UUID v7 | Khi mạng chập chờn client gửi lại, backend phát hiện trùng ID sẽ trả lại hóa đơn đã tạo mà không trừ kho hoặc tính doanh thu 2 lần |
+| Tích hợp trừ kho và hoàn kho qua `InventoryService.applyMovements` | Tuân thủ tuyệt đối quy tắc sổ cái kho bất biến của CLAUDE.md: bán hàng tạo movement `SALE` (âm), đổi trả tạo movement `RETURN` (dương) trong cùng transaction |
+| Phê duyệt chiết khấu > 10% tại chỗ (`POST /sales/authorize-discount`) | Cho phép thu ngân xin cấp quyền nhanh từ quản lý chi nhánh mà không cần đăng xuất phiên thu ngân |
+| Định dạng số tiền VND dạng số nguyên (`Int`) | Đồng bộ toàn hệ thống: tiền tệ VND không có số thập phân, tránh triệt để lỗi làm tròn dấu phẩy động |
+| Mock QR Payment Adapter có trạng thái giả lập | Cho phép thu ngân trải nghiệm luồng thanh toán chuyển khoản QR trực quan ngay trên môi trường POS |
+
+### Kết quả kiểm chứng (tại máy, PostgreSQL 18.3)
+- `pnpm lint`: qua (0 lỗi, 16 cảnh báo `react-refresh/only-export-components`).
+- `pnpm test`: qua 100%.
+  - Unit & E2E API: `apps/api/src/sales/sales.spec.ts` (7/7 tests), `apps/api/test/sales-shifts.e2e-spec.ts` (11/11 tests trên `retailchain_test`).
+  - Shared: `packages/shared/src/sales.test.ts` (6/6 tests tính tiền, chiết khấu, UUID v7).
+  - POS: `apps/pos/src/pos.test.tsx` (14/14 tests) và `apps/pos/src/sales-components.test.tsx` (5/5 tests giao diện thanh toán, in ấn, mở/chốt ca).
+- `pnpm build`: qua toàn bộ 4 workspace package.
+
+### Tồn đọng
+- Chuẩn bị Sprint 5: Bán hàng ngoại tuyến và đồng bộ tự động (REQ-POS-05, outbox worker, SQLite/Dexie IndexedDB, sync endpoint).
+
+
