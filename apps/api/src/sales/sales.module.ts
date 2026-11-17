@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuditModule } from '../audit/audit.module';
+import { AuthModule } from '../auth/auth.module';
 import { BranchesModule } from '../branches/branches.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -11,7 +12,15 @@ import { ShiftsController } from './shifts.controller';
 import { ShiftsService } from './shifts.service';
 
 @Module({
-  imports: [PrismaModule, BranchesModule, UsersModule, ProductsModule, InventoryModule, AuditModule],
+  imports: [
+    PrismaModule,
+    BranchesModule,
+    UsersModule,
+    ProductsModule,
+    InventoryModule,
+    AuditModule,
+    AuthModule,
+  ],
   controllers: [SalesController, ShiftsController],
   providers: [SalesService, ShiftsService],
   exports: [SalesService, ShiftsService],

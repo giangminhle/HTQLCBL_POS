@@ -31,6 +31,7 @@ export function PaymentModal({
   total,
   items,
   note,
+  discountApprovalToken,
   onClose,
   onSuccess,
 }: {
@@ -41,6 +42,7 @@ export function PaymentModal({
   total: number;
   items: CartItem[];
   note?: string;
+  discountApprovalToken?: string;
   onClose: () => void;
   onSuccess: (sale: SaleDetail) => void;
 }) {
@@ -98,8 +100,10 @@ export function PaymentModal({
 
     const payments: PaymentInput[] = [];
     if (numCash > 0) payments.push({ method: PaymentMethod.CASH, amount: numCash });
-    if (numCard > 0) payments.push({ method: PaymentMethod.CARD, amount: numCard, reference: cardRef || null });
-    if (numQr > 0) payments.push({ method: PaymentMethod.QR, amount: numQr, reference: qrRef || 'MOCK_QR_PAYMENT' });
+    if (numCard > 0)
+      payments.push({ method: PaymentMethod.CARD, amount: numCard, reference: cardRef || null });
+    if (numQr > 0)
+      payments.push({ method: PaymentMethod.QR, amount: numQr, reference: qrRef || 'MOCK_QR_PAYMENT' });
 
     if (payments.length === 0) {
       setError('Cần ít nhất một phương thức thanh toán');
@@ -113,6 +117,7 @@ export function PaymentModal({
       shiftId,
       subtotal,
       discount,
+      discountApprovalToken,
       total,
       note: note || null,
       createdAtClient: new Date().toISOString(),
@@ -201,7 +206,9 @@ export function PaymentModal({
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="cashAmountInput" className="block text-xs font-semibold text-gray-700">Tiền mặt khách trả cho đơn</label>
+                  <label htmlFor="cashAmountInput" className="block text-xs font-semibold text-gray-700">
+                    Tiền mặt khách trả cho đơn
+                  </label>
                   <input
                     id="cashAmountInput"
                     type="number"
@@ -213,7 +220,9 @@ export function PaymentModal({
                   />
                 </div>
                 <div>
-                  <label htmlFor="cashGivenInput" className="block text-xs font-semibold text-gray-700">Khách đưa (để tính tiền thừa)</label>
+                  <label htmlFor="cashGivenInput" className="block text-xs font-semibold text-gray-700">
+                    Khách đưa (để tính tiền thừa)
+                  </label>
                   <input
                     id="cashGivenInput"
                     type="number"
@@ -288,7 +297,9 @@ export function PaymentModal({
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700">Mã tham chiếu / Giao dịch</label>
+                    <label className="block text-xs font-semibold text-gray-700">
+                      Mã tham chiếu / Giao dịch
+                    </label>
                     <input
                       type="text"
                       placeholder="Mã giao dịch ngân hàng..."
@@ -303,7 +314,9 @@ export function PaymentModal({
                     onClick={handleSimulateQr}
                     className="w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700 shadow"
                   >
-                    {qrPaidMock ? '✓ Đã giả lập thanh toán QR thành công' : '⚡ Giả lập khách đã quét QR thành công'}
+                    {qrPaidMock
+                      ? '✓ Đã giả lập thanh toán QR thành công'
+                      : '⚡ Giả lập khách đã quét QR thành công'}
                   </button>
                 </div>
               </div>
@@ -325,7 +338,9 @@ export function PaymentModal({
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700">Mã hóa đơn máy POS quẹt thẻ</label>
+                  <label className="block text-xs font-semibold text-gray-700">
+                    Mã hóa đơn máy POS quẹt thẻ
+                  </label>
                   <input
                     type="text"
                     placeholder="Mã chuẩn chi / Trace ID..."

@@ -128,11 +128,14 @@ export const CreateSaleSchema = z.object({
   customerId: z.string().uuid().nullish(),
   subtotal: z.number().int().nonnegative(),
   discount: z.number().int().nonnegative().default(0),
+  discountApprovalToken: z.string().optional(),
   total: z.number().int().nonnegative(),
   note: z.string().max(500).nullish(),
   createdAtClient: z.string().datetime({ message: 'createdAtClient phải là chuỗi ISO datetime' }),
   items: z.array(SaleItemInputSchema).min(1, { message: 'Hóa đơn phải có ít nhất 1 sản phẩm' }),
-  payments: z.array(PaymentInputSchema).min(1, { message: 'Hóa đơn phải có ít nhất 1 phương thức thanh toán' }),
+  payments: z
+    .array(PaymentInputSchema)
+    .min(1, { message: 'Hóa đơn phải có ít nhất 1 phương thức thanh toán' }),
 });
 export type CreateSaleInput = z.infer<typeof CreateSaleSchema>;
 
@@ -315,7 +318,11 @@ export function calculateCashChange(totalDue: number, cashGiven: number): number
   return Math.max(0, cashGiven - totalDue);
 }
 
-export function isDiscountOverLimit(discountAmount: number, baseAmount: number, maxPercent: number = 10): boolean {
+export function isDiscountOverLimit(
+  discountAmount: number,
+  baseAmount: number,
+  maxPercent: number = 10,
+): boolean {
   if (baseAmount <= 0) return discountAmount > 0;
   const percent = (discountAmount / baseAmount) * 100;
   return percent > maxPercent;

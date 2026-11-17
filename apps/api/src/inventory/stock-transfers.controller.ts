@@ -1,13 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  Param,
-  ParseUUIDPipe,
-  Post,
-  Query,
-} from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   AuditAction,
@@ -26,12 +17,7 @@ class CreateStockTransferDto extends createZodDto(CreateStockTransferSchema) {}
 class ReceiveStockTransferDto extends createZodDto(ReceiveStockTransferSchema) {}
 class StockTransferQueryDto extends createZodDto(StockTransferQuerySchema) {}
 
-const TRANSFER_READERS = [
-  Role.OWNER,
-  Role.BRANCH_MANAGER,
-  Role.WAREHOUSE_KEEPER,
-  Role.ACCOUNTANT,
-];
+const TRANSFER_READERS = [Role.OWNER, Role.BRANCH_MANAGER, Role.WAREHOUSE_KEEPER, Role.ACCOUNTANT];
 const TRANSFER_WRITERS = [Role.OWNER, Role.BRANCH_MANAGER, Role.WAREHOUSE_KEEPER];
 
 @ApiTags('stock-transfers')

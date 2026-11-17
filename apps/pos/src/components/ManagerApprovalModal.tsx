@@ -7,6 +7,7 @@ const authResponseSchema = z.object({
   authorized: z.boolean(),
   managerName: z.string(),
   managerRole: z.string(),
+  approvalToken: z.string(),
 });
 
 export function ManagerApprovalModal({
@@ -16,7 +17,7 @@ export function ManagerApprovalModal({
 }: {
   title?: string;
   onClose: () => void;
-  onApproved: (managerName: string) => void;
+  onApproved: (managerName: string, approvalToken: string) => void;
 }) {
   const { api } = useAuth();
   const [username, setUsername] = useState('');
@@ -30,7 +31,7 @@ export function ManagerApprovalModal({
         password,
       }),
     onSuccess: (data) => {
-      onApproved(data.managerName);
+      onApproved(data.managerName, data.approvalToken);
       onClose();
     },
     onError: (err: { message?: string }) => {
@@ -49,7 +50,8 @@ export function ManagerApprovalModal({
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
         <h3 className="text-lg font-bold text-gray-900">{title}</h3>
         <p className="mt-1 text-xs text-gray-500">
-          Chỉ Quản lý chi nhánh (BRANCH_MANAGER) hoặc Chủ chuỗi (OWNER) mới có quyền duyệt chiết khấu vượt hạn mức.
+          Chỉ Quản lý chi nhánh (BRANCH_MANAGER) hoặc Chủ chuỗi (OWNER) mới có quyền duyệt chiết khấu vượt hạn
+          mức.
         </p>
 
         {error && (

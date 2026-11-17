@@ -166,6 +166,7 @@ describe('Sales & Shifts Unit Tests (Sprint 4)', () => {
           findUniqueOrThrow: jest.fn(),
         },
         $transaction: jest.fn(async (cb: (tx: unknown) => unknown) => cb(prismaMock)),
+        $queryRaw: jest.fn().mockResolvedValue([{ value: 1 }]),
       };
 
       branchesMock = {
@@ -207,6 +208,7 @@ describe('Sales & Shifts Unit Tests (Sprint 4)', () => {
         productsMock as never,
         inventoryMock as never,
         snapshotMock as never,
+        { verifyAsync: jest.fn().mockRejectedValue(new Error('invalid token')) } as never,
       );
     });
 
@@ -317,6 +319,87 @@ describe('Sales & Shifts Unit Tests (Sprint 4)', () => {
       expect(res.id).toBe(saleId);
       expect(prismaMock.sale.create).not.toHaveBeenCalled();
       expect(inventoryMock.applyMovements).not.toHaveBeenCalled();
+    });
+
+    it('REQ-POS-01: denies discounts over 10 percent without a branch approval token', async () => {
+      const saleId = uuidv7();
+      prismaMock.sale.findUnique.mockResolvedValue(null);
+      await expect(
+        service.createSale(cashierUser, {
+          id: saleId,
+          branchId: ch01Id,
+          shiftId,
+          subtotal: 80000,
+          discount: 0,
+          total: 80000,
+          createdAtClient: new Date().toISOString(),
+          items: [
+            { variantId: variant1Id, quantity: 1, unitPrice: 100000, discount: 20000, lineTotal: 80000 },
+          ],
+          payments: [{ method: 'CASH', amount: 80000 }],
+        }),
+      ).rejects.toMatchObject({ status: 403 });
+    });
+
+    it('REQ-POS-01: checks branch access before returning an existing sale', async () => {
+      const saleId = uuidv7();
+      prismaMock.sale.findUnique.mockResolvedValue({
+        id: saleId,
+        branchId: ch01Id,
+      });
+      const cashierBranchB = { ...cashierUser, branchId: '22222222-2222-2222-2222-222222222222' };
+      await expect(
+        service.createSale(cashierBranchB, {
+          id: saleId,
+          branchId: cashierBranchB.branchId!,
+          shiftId,
+          subtotal: 1,
+          discount: 0,
+          total: 1,
+          createdAtClient: new Date().toISOString(),
+          items: [{ variantId: variant1Id, quantity: 1, unitPrice: 1, discount: 0, lineTotal: 1 }],
+          payments: [{ method: 'CASH', amount: 1 }],
+        }),
+      ).rejects.toMatchObject({ status: 403 });
+    });
+
+    it('REQ-POS-02: returns the concurrent winner when sale id conflicts', async () => {
+      const saleId = uuidv7();
+      const prismaError = Object.assign(new Error('unique constraint'), {
+        code: 'P2002',
+        meta: { target: ['id'] },
+      });
+      prismaMock.sale.findUnique.mockResolvedValueOnce(null).mockResolvedValue({
+        id: saleId,
+        code: 'HD-CH01-261117-0001',
+        branchId: ch01Id,
+        shiftId,
+        cashierId: cashierUser.id,
+        subtotal: 1,
+        discount: 0,
+        total: 1,
+        status: 'COMPLETED',
+        note: null,
+        createdAtClient: new Date(),
+        createdAtServer: new Date(),
+        updatedAt: new Date(),
+        items: [],
+        payments: [],
+      });
+      prismaMock.$transaction.mockRejectedValueOnce(prismaError);
+      await expect(
+        service.createSale(cashierUser, {
+          id: saleId,
+          branchId: ch01Id,
+          shiftId,
+          subtotal: 1,
+          discount: 0,
+          total: 1,
+          createdAtClient: new Date().toISOString(),
+          items: [{ variantId: variant1Id, quantity: 1, unitPrice: 1, discount: 0, lineTotal: 1 }],
+          payments: [{ method: 'CASH', amount: 1 }],
+        }),
+      ).resolves.toMatchObject({ id: saleId });
     });
 
     it('REQ-POS-04: rejects return if sale is older than 7 days', async () => {

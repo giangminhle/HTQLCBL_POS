@@ -175,7 +175,11 @@ export class ShiftsService implements OnModuleInit {
 
     const where = {
       ...(scopedBranchId ? { branchId: scopedBranchId } : {}),
-      ...(user.role === Role.CASHIER ? { cashierId: user.id } : query.cashierId ? { cashierId: query.cashierId } : {}),
+      ...(user.role === Role.CASHIER
+        ? { cashierId: user.id }
+        : query.cashierId
+          ? { cashierId: query.cashierId }
+          : {}),
       ...(query.status ? { status: query.status } : {}),
     };
 

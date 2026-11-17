@@ -56,7 +56,10 @@ describe('Sales, Shifts & POS Returns (REQ-POS-01..04, REQ-SHF-01) (e2e)', () =>
     it('REQ-SHF-01: cashier opens a shift with opening cash', async () => {
       // If cashier01 has an open shift from previous runs, close it first
       const openShift = await prisma.shift.findFirst({
-        where: { cashierId: (await prisma.user.findUniqueOrThrow({ where: { username: 'cashier01' } })).id, status: 'OPEN' },
+        where: {
+          cashierId: (await prisma.user.findUniqueOrThrow({ where: { username: 'cashier01' } })).id,
+          status: 'OPEN',
+        },
       });
       if (openShift) {
         await prisma.shift.update({
@@ -85,11 +88,7 @@ describe('Sales, Shifts & POS Returns (REQ-POS-01..04, REQ-SHF-01) (e2e)', () =>
     });
 
     it('REQ-SHF-01: cannot open a 2nd shift while 1st is still OPEN', async () => {
-      await http()
-        .post('/shifts/open')
-        .set(bearer(cashier01))
-        .send({ openingCash: 500000 })
-        .expect(400);
+      await http().post('/shifts/open').set(bearer(cashier01)).send({ openingCash: 500000 }).expect(400);
     });
   });
 
@@ -213,6 +212,138 @@ describe('Sales, Shifts & POS Returns (REQ-POS-01..04, REQ-SHF-01) (e2e)', () =>
       expect(movementCount).toBe(1);
     });
 
+    it('REQ-POS-01: denies replaying a branch A sale id from a branch B cashier', async () => {
+      const cashier02 = (await login(app, 'cashier02', PASSWORDS.cashier, 'pos')).accessToken;
+      await http()
+        .post('/sales')
+        .set(bearer(cashier02))
+        .send({
+          id: saleId,
+          branchId: ch01Id,
+          shiftId,
+          subtotal: testUnitPrice,
+          total: testUnitPrice,
+          discount: 0,
+          createdAtClient: new Date().toISOString(),
+          items: [
+            {
+              variantId: testVariantId,
+              quantity: 1,
+              unitPrice: testUnitPrice,
+              discount: 0,
+              lineTotal: testUnitPrice,
+            },
+          ],
+          payments: [{ method: 'CASH', amount: testUnitPrice }],
+        })
+        .expect(403);
+    });
+
+    it('REQ-POS-01: requires an approval token for discounts above 10 percent and records the manager', async () => {
+      const payload = {
+        id: uuidv7(),
+        branchId: ch01Id,
+        shiftId,
+        subtotal: 80000,
+        discount: 0,
+        total: 80000,
+        createdAtClient: new Date().toISOString(),
+        items: [
+          {
+            variantId: testVariantId,
+            quantity: 1,
+            unitPrice: testUnitPrice,
+            discount: 20000,
+            lineTotal: 80000,
+          },
+        ],
+        payments: [{ method: 'CASH', amount: 80000 }],
+      };
+      await http().post('/sales').set(bearer(cashier01)).send(payload).expect(403);
+      const approved = await http()
+        .post('/sales/authorize-discount')
+        .set(bearer(cashier01))
+        .send({ username: 'manager01', password: PASSWORDS.manager })
+        .expect(201);
+      expect(approved.body.approvalToken).toEqual(expect.any(String));
+      const manager = await prisma.user.findUniqueOrThrow({ where: { username: 'manager01' } });
+      expect(
+        await prisma.auditLog.count({
+          where: { userId: manager.id, entity: 'DiscountApproval', action: 'LOGIN' },
+        }),
+      ).toBeGreaterThan(0);
+      const created = await http()
+        .post('/sales')
+        .set(bearer(cashier01))
+        .send({ ...payload, id: uuidv7(), discountApprovalToken: approved.body.approvalToken })
+        .expect(201);
+      const storedSale = await prisma.sale.findUniqueOrThrow({ where: { id: created.body.id } });
+      expect(storedSale.approvedByManagerId).toBe(manager.id);
+    });
+
+    it('REQ-POS-02: concurrent duplicate id requests both succeed and write one sale and one movement', async () => {
+      const duplicateId = uuidv7();
+      const payload = {
+        id: duplicateId,
+        branchId: ch01Id,
+        shiftId,
+        subtotal: testUnitPrice,
+        discount: 0,
+        total: testUnitPrice,
+        createdAtClient: new Date().toISOString(),
+        items: [
+          {
+            variantId: testVariantId,
+            quantity: 1,
+            unitPrice: testUnitPrice,
+            discount: 0,
+            lineTotal: testUnitPrice,
+          },
+        ],
+        payments: [{ method: 'CASH', amount: testUnitPrice }],
+      };
+      const responses = await Promise.all([
+        http().post('/sales').set(bearer(cashier01)).send(payload),
+        http().post('/sales').set(bearer(cashier01)).send(payload),
+      ]);
+      expect(responses.every((response) => response.status >= 200 && response.status < 300)).toBe(true);
+      expect(await prisma.sale.count({ where: { id: duplicateId } })).toBe(1);
+      expect(await prisma.stockMovement.count({ where: { refType: 'Sale', refId: duplicateId } })).toBe(1);
+    });
+
+    it('REQ-POS-02: assigns unique codes to 20 concurrent sales at one branch', async () => {
+      const responses = await Promise.all(
+        Array.from({ length: 20 }, (_, index) =>
+          http()
+            .post('/sales')
+            .set(bearer(cashier01))
+            .send({
+              id: uuidv7(),
+              branchId: ch01Id,
+              shiftId,
+              subtotal: testUnitPrice,
+              discount: 0,
+              total: testUnitPrice,
+              note: `parallel ${index}`,
+              createdAtClient: new Date().toISOString(),
+              items: [
+                {
+                  variantId: testVariantId,
+                  quantity: 1,
+                  unitPrice: testUnitPrice,
+                  discount: 0,
+                  lineTotal: testUnitPrice,
+                },
+              ],
+              payments: [{ method: 'CASH', amount: testUnitPrice }],
+            }),
+        ),
+      );
+      expect(responses.every((response) => response.status >= 200 && response.status < 300)).toBe(true);
+      const codes = responses.map((response) => response.body.code);
+      expect(new Set(codes).size).toBe(20);
+    });
+
     it('REQ-POS-02: rejects sale if payment is insufficient', async () => {
       const badSaleId = uuidv7();
       await http()
@@ -259,6 +390,12 @@ describe('Sales, Shifts & POS Returns (REQ-POS-01..04, REQ-SHF-01) (e2e)', () =>
         .set(bearer(cashier01))
         .send({ username: 'manager01', password: 'WrongPassword' })
         .expect(401);
+      const manager = await prisma.user.findUniqueOrThrow({ where: { username: 'manager01' } });
+      expect(
+        await prisma.auditLog.count({
+          where: { userId: manager.id, entity: 'DiscountApproval', action: 'LOGIN_FAILED' },
+        }),
+      ).toBeGreaterThan(0);
     });
   });
 
@@ -381,6 +518,31 @@ describe('Sales, Shifts & POS Returns (REQ-POS-01..04, REQ-SHF-01) (e2e)', () =>
       // Current shift should now be null
       const checkCurrent = await http().get('/shifts/current').set(bearer(cashier01));
       expect(checkCurrent.body).toEqual({});
+    });
+  });
+
+  describe('Discount approval lockout and audit (REQ-POS-01)', () => {
+    it('REQ-POS-01: locks the manager after five failed approval attempts and audits each attempt', async () => {
+      const manager = await prisma.user.findUniqueOrThrow({ where: { username: 'manager01' } });
+      const attempts = Math.max(0, 5 - manager.failedLoginCount);
+      for (let i = 0; i < attempts; i += 1) {
+        await http()
+          .post('/sales/authorize-discount')
+          .set(bearer(cashier01))
+          .send({ username: 'manager01', password: 'WrongPassword' })
+          .expect(401);
+      }
+      const locked = await prisma.user.findUniqueOrThrow({ where: { id: manager.id } });
+      expect(locked.lockedUntil?.getTime()).toBeGreaterThan(Date.now());
+      expect(locked.lockedUntil?.getTime()).toBeLessThanOrEqual(Date.now() + 15 * 60 * 1000);
+      const failureAudits = await prisma.auditLog.count({
+        where: { userId: manager.id, entity: 'DiscountApproval', action: 'LOGIN_FAILED' },
+      });
+      expect(failureAudits).toBeGreaterThanOrEqual(attempts);
+      await prisma.user.update({
+        where: { id: manager.id },
+        data: { failedLoginCount: 0, lockedUntil: null },
+      });
     });
   });
 });

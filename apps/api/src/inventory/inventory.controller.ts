@@ -15,12 +15,7 @@ class BalanceQueryDto extends createZodDto(BalanceQuerySchema) {}
 class MovementQueryDto extends createZodDto(MovementQuerySchema) {}
 class LowStockQueryDto extends createZodDto(LowStockQuerySchema) {}
 
-const INVENTORY_READERS = [
-  Role.OWNER,
-  Role.BRANCH_MANAGER,
-  Role.WAREHOUSE_KEEPER,
-  Role.ACCOUNTANT,
-];
+const INVENTORY_READERS = [Role.OWNER, Role.BRANCH_MANAGER, Role.WAREHOUSE_KEEPER, Role.ACCOUNTANT];
 
 @ApiTags('inventory')
 @ApiBearerAuth('JWT')

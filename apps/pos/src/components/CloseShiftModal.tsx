@@ -79,7 +79,9 @@ export function CloseShiftModal({
             )}
             <div className="flex justify-between text-gray-500 text-xs pt-1 border-t border-gray-200">
               <span>Doanh thu không dùng tiền mặt (Thẻ + QR):</span>
-              <span className="font-medium text-gray-700">{formatVnd(summary.cardSales + summary.qrSales)}</span>
+              <span className="font-medium text-gray-700">
+                {formatVnd(summary.cardSales + summary.qrSales)}
+              </span>
             </div>
             <div className="flex justify-between text-base font-bold text-blue-900 pt-2 border-t border-gray-300">
               <span>TIỀN MẶT DỰ KIẾN TRONG KÉT:</span>

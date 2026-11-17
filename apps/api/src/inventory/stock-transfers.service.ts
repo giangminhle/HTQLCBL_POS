@@ -101,10 +101,10 @@ export class StockTransfersService implements OnModuleInit {
       note: r.note,
       status: r.status as StockTransferStatus,
       sentBy: r.sentBy,
-      sentByName: r.sentBy ? userMap.get(r.sentBy)?.fullName ?? r.sentBy : null,
+      sentByName: r.sentBy ? (userMap.get(r.sentBy)?.fullName ?? r.sentBy) : null,
       sentAt: r.sentAt?.toISOString() ?? null,
       receivedBy: r.receivedBy,
-      receivedByName: r.receivedBy ? userMap.get(r.receivedBy)?.fullName ?? r.receivedBy : null,
+      receivedByName: r.receivedBy ? (userMap.get(r.receivedBy)?.fullName ?? r.receivedBy) : null,
       receivedAt: r.receivedAt?.toISOString() ?? null,
       createdBy: r.createdBy,
       createdByName: userMap.get(r.createdBy)?.fullName ?? r.createdBy,
@@ -168,10 +168,10 @@ export class StockTransfersService implements OnModuleInit {
       note: row.note,
       status: row.status as StockTransferStatus,
       sentBy: row.sentBy,
-      sentByName: row.sentBy ? userMap.get(row.sentBy)?.fullName ?? row.sentBy : null,
+      sentByName: row.sentBy ? (userMap.get(row.sentBy)?.fullName ?? row.sentBy) : null,
       sentAt: row.sentAt?.toISOString() ?? null,
       receivedBy: row.receivedBy,
-      receivedByName: row.receivedBy ? userMap.get(row.receivedBy)?.fullName ?? row.receivedBy : null,
+      receivedByName: row.receivedBy ? (userMap.get(row.receivedBy)?.fullName ?? row.receivedBy) : null,
       receivedAt: row.receivedAt?.toISOString() ?? null,
       createdBy: row.createdBy,
       createdByName: userMap.get(row.createdBy)?.fullName ?? row.createdBy,
@@ -244,7 +244,9 @@ export class StockTransfersService implements OnModuleInit {
       for (const item of row.items) {
         const available = balanceMap.get(item.variantId) ?? 0;
         if (available < item.sentQuantity) {
-          throw badRequest(`Tồn kho tại chi nhánh gửi không đủ (hiện có: ${available}, yêu cầu: ${item.sentQuantity})`);
+          throw badRequest(
+            `Tồn kho tại chi nhánh gửi không đủ (hiện có: ${available}, yêu cầu: ${item.sentQuantity})`,
+          );
         }
       }
 

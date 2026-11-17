@@ -1,10 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  supplierPageSchema,
-  supplierSchema,
-  type Supplier,
-} from '@retailchain/shared';
+import { supplierPageSchema, supplierSchema, type Supplier } from '@retailchain/shared';
 import { useAuth, useSession } from '../auth/AuthContext';
 import {
   Badge,
@@ -38,7 +34,8 @@ export function SuppliersPage() {
       }),
   });
 
-  const canWrite = user?.role === 'OWNER' || user?.role === 'BRANCH_MANAGER' || user?.role === 'WAREHOUSE_KEEPER';
+  const canWrite =
+    user?.role === 'OWNER' || user?.role === 'BRANCH_MANAGER' || user?.role === 'WAREHOUSE_KEEPER';
 
   return (
     <div className="flex flex-col gap-4">
@@ -47,9 +44,7 @@ export function SuppliersPage() {
           <h1 className="text-xl font-bold text-slate-800">Nhà cung cấp</h1>
           <p className="text-sm text-slate-500">Quản lý đối tác và nhà cung ứng hàng hóa</p>
         </div>
-        {canWrite && (
-          <Button onClick={() => setEditing('new')}>+ Thêm nhà cung cấp</Button>
-        )}
+        {canWrite && <Button onClick={() => setEditing('new')}>+ Thêm nhà cung cấp</Button>}
       </div>
 
       <div className="flex items-center gap-3">
@@ -104,9 +99,7 @@ export function SuppliersPage() {
                 <td className="px-4 py-3 text-slate-600">{s.email || '—'}</td>
                 <td className="px-4 py-3 text-slate-600">{s.address || '—'}</td>
                 <td className="px-4 py-3">
-                  <Badge tone={s.isActive ? 'green' : 'gray'}>
-                    {s.isActive ? 'Hoạt động' : 'Ngưng'}
-                  </Badge>
+                  <Badge tone={s.isActive ? 'green' : 'gray'}>{s.isActive ? 'Hoạt động' : 'Ngưng'}</Badge>
                 </td>
                 <td className="px-4 py-3 text-xs text-slate-500">{formatDateTime(s.createdAt)}</td>
                 {canWrite && (
@@ -122,14 +115,7 @@ export function SuppliersPage() {
         </table>
       </div>
 
-      {data && (
-        <Pagination
-          page={page}
-          pageSize={15}
-          total={data.total}
-          onPage={(p) => setPage(p)}
-        />
-      )}
+      {data && <Pagination page={page} pageSize={15} total={data.total} onPage={(p) => setPage(p)} />}
 
       {editing && (
         <SupplierModal
@@ -260,11 +246,7 @@ function SupplierModal({
         </Field>
         {supplier && (
           <label className="flex items-center gap-2 text-sm text-slate-700">
-            <input
-              type="checkbox"
-              checked={isActive}
-              onChange={(e) => setIsActive(e.target.checked)}
-            />
+            <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
             Đang hoạt động
           </label>
         )}

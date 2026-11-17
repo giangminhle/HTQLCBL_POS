@@ -63,7 +63,11 @@ describe('Inventory UI & Menu (REQ-INV-01..04)', () => {
     const session = makeSession({ role: Role.WAREHOUSE_KEEPER });
     const { auth } = await makeAuth(session, fetchMock);
 
-    renderRoutes(auth, [{ path: '/inventory/receipts', element: <GoodsReceiptsPage /> }], '/inventory/receipts');
+    renderRoutes(
+      auth,
+      [{ path: '/inventory/receipts', element: <GoodsReceiptsPage /> }],
+      '/inventory/receipts',
+    );
 
     await waitFor(() => {
       expect(screen.getByText('Nhập kho (REQ-INV-01)')).toBeInTheDocument();
@@ -110,7 +114,11 @@ describe('Inventory UI & Menu (REQ-INV-01..04)', () => {
     const session = makeSession({ role: Role.OWNER });
     const { auth } = await makeAuth(session, fetchMock);
 
-    renderRoutes(auth, [{ path: '/inventory/transfers', element: <StockTransfersPage /> }], '/inventory/transfers');
+    renderRoutes(
+      auth,
+      [{ path: '/inventory/transfers', element: <StockTransfersPage /> }],
+      '/inventory/transfers',
+    );
 
     await waitFor(() => {
       expect(screen.getByText('Chuyển kho (REQ-INV-02)')).toBeInTheDocument();

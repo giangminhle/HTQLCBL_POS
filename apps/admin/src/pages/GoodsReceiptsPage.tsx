@@ -96,9 +96,7 @@ export function GoodsReceiptsPage() {
             <option value={GoodsReceiptStatus.COMPLETED}>Đã hoàn thành</option>
           </select>
 
-          {canWrite && (
-            <Button onClick={() => setCreating(true)}>+ Nhập hàng</Button>
-          )}
+          {canWrite && <Button onClick={() => setCreating(true)}>+ Nhập hàng</Button>}
         </div>
       </div>
 
@@ -161,14 +159,7 @@ export function GoodsReceiptsPage() {
         </table>
       </div>
 
-      {data && (
-        <Pagination
-          page={page}
-          pageSize={15}
-          total={data.total}
-          onPage={(p) => setPage(p)}
-        />
-      )}
+      {data && <Pagination page={page} pageSize={15} total={data.total} onPage={(p) => setPage(p)} />}
 
       {creating && (
         <CreateReceiptModal
@@ -254,7 +245,10 @@ function CreateReceiptModal({
     setItems(items.filter((_, i) => i !== index));
   };
 
-  const updateItem = (index: number, patch: Partial<{ variantId: string; quantity: number; unitCost: number }>) => {
+  const updateItem = (
+    index: number,
+    patch: Partial<{ variantId: string; quantity: number; unitCost: number }>,
+  ) => {
     setItems(
       items.map((item, i) => {
         if (i !== index) return item;
@@ -428,11 +422,7 @@ function CreateReceiptModal({
         </div>
 
         <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input
-            type="checkbox"
-            checked={completeNow}
-            onChange={(e) => setCompleteNow(e.target.checked)}
-          />
+          <input type="checkbox" checked={completeNow} onChange={(e) => setCompleteNow(e.target.checked)} />
           <strong>Hoàn thành và cập nhật sổ cái tồn kho ngay lập tức</strong>
         </label>
 
@@ -534,7 +524,9 @@ function ReceiptDetailModal({
                   <td className="px-3 py-2 font-mono text-slate-700">{i.variantSku}</td>
                   <td className="px-3 py-2 font-medium text-slate-800">{i.productName}</td>
                   <td className="px-3 py-2 text-slate-600">{i.variantName}</td>
-                  <td className="px-3 py-2 text-right font-medium">{formatVnd(i.quantity)} {i.unit}</td>
+                  <td className="px-3 py-2 text-right font-medium">
+                    {formatVnd(i.quantity)} {i.unit}
+                  </td>
                   <td className="px-3 py-2 text-right text-slate-700">{formatVnd(i.unitCost)} đ</td>
                   <td className="px-3 py-2 text-right font-bold text-emerald-700">
                     {formatVnd(i.quantity * i.unitCost)} đ
@@ -562,10 +554,7 @@ function ReceiptDetailModal({
             Đóng
           </Button>
           {canWrite && receipt.status === GoodsReceiptStatus.DRAFT && (
-            <Button
-              onClick={() => completeMut.mutate()}
-              disabled={completeMut.isPending}
-            >
+            <Button onClick={() => completeMut.mutate()} disabled={completeMut.isPending}>
               {completeMut.isPending ? 'Đang hoàn thành...' : 'Hoàn thành phiếu & Nhập kho'}
             </Button>
           )}

@@ -1,14 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  Param,
-  ParseUUIDPipe,
-  Patch,
-  Post,
-  Query,
-} from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   AuditAction,
@@ -27,12 +17,7 @@ class CreateGoodsReceiptDto extends createZodDto(CreateGoodsReceiptSchema) {}
 class UpdateGoodsReceiptDto extends createZodDto(UpdateGoodsReceiptSchema) {}
 class GoodsReceiptQueryDto extends createZodDto(GoodsReceiptQuerySchema) {}
 
-const RECEIPT_READERS = [
-  Role.OWNER,
-  Role.BRANCH_MANAGER,
-  Role.WAREHOUSE_KEEPER,
-  Role.ACCOUNTANT,
-];
+const RECEIPT_READERS = [Role.OWNER, Role.BRANCH_MANAGER, Role.WAREHOUSE_KEEPER, Role.ACCOUNTANT];
 const RECEIPT_WRITERS = [Role.OWNER, Role.BRANCH_MANAGER, Role.WAREHOUSE_KEEPER];
 
 @ApiTags('goods-receipts')

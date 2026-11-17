@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  calculateCartSummary,
-  calculateCashChange,
-  calculateLineTotal,
-  isDiscountOverLimit,
-} from './sales';
+import { calculateCartSummary, calculateCashChange, calculateLineTotal, isDiscountOverLimit } from './sales';
 import { isValidUuid, uuidv7 } from './uuid';
 
 describe('UUID v7 (RFC 9562)', () => {

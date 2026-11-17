@@ -502,6 +502,7 @@ model Sale {
   branchId        String     @map("branch_id") @db.Uuid
   shiftId         String     @map("shift_id") @db.Uuid
   cashierId       String     @map("cashier_id") @db.Uuid
+  approvedByManagerId String? @map("approved_by_manager_id") @db.Uuid
   customerId      String?    @map("customer_id") @db.Uuid
   subtotal        Int
   discount        Int        @default(0)
@@ -523,6 +524,16 @@ model Sale {
   @@index([shiftId])
   @@index([cashierId])
   @@map("sales")
+}
+
+model DocumentCodeCounter {
+  branchId     String   @map("branch_id") @db.Uuid
+  documentType String   @map("document_type") @db.VarChar(10)
+  businessDate DateTime @map("business_date") @db.Date
+  value        Int
+
+  @@id([branchId, documentType, businessDate])
+  @@map("document_code_counters")
 }
 
 model SaleItem {

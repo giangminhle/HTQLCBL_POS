@@ -32,13 +32,7 @@ describe('Inventory Module (REQ-INV-01..04)', () => {
 
   describe('InventoryService.applyMovements (REQ-INV-01..04)', () => {
     it('REQ-INV-01: throws badRequest if movement quantity is 0', async () => {
-      const service = new InventoryService(
-        {} as never,
-        {} as never,
-        {} as never,
-        {} as never,
-        {} as never,
-      );
+      const service = new InventoryService({} as never, {} as never, {} as never, {} as never, {} as never);
 
       await expect(
         service.applyMovements([
