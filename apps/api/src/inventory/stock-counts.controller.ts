@@ -1,14 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  Param,
-  ParseUUIDPipe,
-  Patch,
-  Post,
-  Query,
-} from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   AuditAction,
@@ -27,12 +17,7 @@ class CreateStockCountDto extends createZodDto(CreateStockCountSchema) {}
 class UpdateStockCountDto extends createZodDto(UpdateStockCountSchema) {}
 class StockCountQueryDto extends createZodDto(StockCountQuerySchema) {}
 
-const COUNT_READERS = [
-  Role.OWNER,
-  Role.BRANCH_MANAGER,
-  Role.WAREHOUSE_KEEPER,
-  Role.ACCOUNTANT,
-];
+const COUNT_READERS = [Role.OWNER, Role.BRANCH_MANAGER, Role.WAREHOUSE_KEEPER, Role.ACCOUNTANT];
 const COUNT_WRITERS = [Role.OWNER, Role.BRANCH_MANAGER, Role.WAREHOUSE_KEEPER];
 
 @ApiTags('stock-counts')

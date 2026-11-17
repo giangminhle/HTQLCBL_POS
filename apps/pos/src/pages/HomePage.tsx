@@ -114,7 +114,16 @@ export function HomePage() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [view, cart.length, currentShift, searchModalOpen, paymentModalOpen, openShiftOpen, closeShiftOpen, approvalModal]);
+  }, [
+    view,
+    cart.length,
+    currentShift,
+    searchModalOpen,
+    paymentModalOpen,
+    openShiftOpen,
+    closeShiftOpen,
+    approvalModal,
+  ]);
 
   if (!session) return null;
   const status = posSessionStatus(session, online);
@@ -176,7 +185,10 @@ export function HomePage() {
       let foundVariant: SelectedVariant | null = null;
       for (const p of res.items) {
         for (const v of p.variants) {
-          if (v.sku.toLowerCase() === code.toLowerCase() || (v.barcodes && v.barcodes.some((b) => b.code === code))) {
+          if (
+            v.sku.toLowerCase() === code.toLowerCase() ||
+            (v.barcodes && v.barcodes.some((b) => b.code === code))
+          ) {
             foundVariant = {
               variantId: v.id,
               variantName: v.name,
@@ -358,7 +370,9 @@ export function HomePage() {
           role="alert"
           className="flex items-center justify-between bg-amber-100 px-4 py-2 text-sm text-amber-900 border-b border-amber-200"
         >
-          <span>Phiên đăng nhập đã hết hạn. Bạn vẫn bán hàng được; hãy đăng nhập lại để đồng bộ dữ liệu.</span>
+          <span>
+            Phiên đăng nhập đã hết hạn. Bạn vẫn bán hàng được; hãy đăng nhập lại để đồng bộ dữ liệu.
+          </span>
           <button
             type="button"
             onClick={() => navigate('/login')}
@@ -663,10 +677,7 @@ export function HomePage() {
       )}
 
       {searchModalOpen && (
-        <ProductSearchModal
-          onClose={() => setSearchModalOpen(false)}
-          onSelect={(v) => addVariantToCart(v)}
-        />
+        <ProductSearchModal onClose={() => setSearchModalOpen(false)} onSelect={(v) => addVariantToCart(v)} />
       )}
 
       {paymentModalOpen && currentShift && (

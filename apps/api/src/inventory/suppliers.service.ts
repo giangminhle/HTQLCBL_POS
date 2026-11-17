@@ -22,9 +22,7 @@ export class SuppliersService implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
-    this.snapshots.register(SUPPLIER_ENTITY, (id) =>
-      this.prisma.supplier.findUnique({ where: { id } }),
-    );
+    this.snapshots.register(SUPPLIER_ENTITY, (id) => this.prisma.supplier.findUnique({ where: { id } }));
   }
 
   async list(viewer: AuthUser, query: SupplierQuery): Promise<Paginated<Supplier>> {

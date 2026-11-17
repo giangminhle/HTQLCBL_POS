@@ -251,7 +251,9 @@ export class SalesService implements OnModuleInit {
       }
       const remaining = origItem.quantity - origItem.returnedQuantity;
       if (returnItem.quantity > remaining) {
-        throw badRequest(`Số lượng trả (${returnItem.quantity}) vượt quá số lượng còn lại có thể trả (${remaining})`);
+        throw badRequest(
+          `Số lượng trả (${returnItem.quantity}) vượt quá số lượng còn lại có thể trả (${remaining})`,
+        );
       }
       totalRefund += returnItem.refundAmount;
     }
@@ -362,7 +364,10 @@ export class SalesService implements OnModuleInit {
     };
   }
 
-  async authorizeDiscount(user: AuthUser, dto: AuthorizeDiscountInput): Promise<{
+  async authorizeDiscount(
+    user: AuthUser,
+    dto: AuthorizeDiscountInput,
+  ): Promise<{
     authorized: boolean;
     managerName: string;
     managerRole: Role;

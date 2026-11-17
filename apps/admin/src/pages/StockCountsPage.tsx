@@ -95,9 +95,7 @@ export function StockCountsPage() {
             <option value={StockCountStatus.COMPLETED}>Đã chốt (COMPLETED)</option>
           </select>
 
-          {canWrite && (
-            <Button onClick={() => setCreating(true)}>+ Tạo đợt kiểm kê</Button>
-          )}
+          {canWrite && <Button onClick={() => setCreating(true)}>+ Tạo đợt kiểm kê</Button>}
         </div>
       </div>
 
@@ -168,14 +166,7 @@ export function StockCountsPage() {
         </table>
       </div>
 
-      {data && (
-        <Pagination
-          page={page}
-          pageSize={15}
-          total={data.total}
-          onPage={(p) => setPage(p)}
-        />
-      )}
+      {data && <Pagination page={page} pageSize={15} total={data.total} onPage={(p) => setPage(p)} />}
 
       {creating && (
         <CreateCountModal
@@ -202,12 +193,7 @@ export function StockCountsPage() {
         />
       )}
 
-      {viewingCount && (
-        <CountDetailModal
-          countId={viewingCount.id}
-          onClose={() => setViewingCount(null)}
-        />
-      )}
+      {viewingCount && <CountDetailModal countId={viewingCount.id} onClose={() => setViewingCount(null)} />}
     </div>
   );
 }
@@ -246,9 +232,7 @@ function CreateCountModal({
   );
 
   const toggleVariant = (id: string) => {
-    setSelectedVariants((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
+    setSelectedVariants((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
   const selectAll = () => {
@@ -343,14 +327,12 @@ function CreateCountModal({
                     checked ? 'border-slate-800 bg-slate-50' : 'border-slate-200 hover:bg-slate-50'
                   }`}
                 >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => toggleVariant(v.id)}
-                  />
+                  <input type="checkbox" checked={checked} onChange={() => toggleVariant(v.id)} />
                   <div>
                     <strong className="block text-slate-800">{v.name}</strong>
-                    <span className="text-slate-500 font-mono">{v.sku} ({v.unit})</span>
+                    <span className="text-slate-500 font-mono">
+                      {v.sku} ({v.unit})
+                    </span>
                   </div>
                 </label>
               );
@@ -438,7 +420,9 @@ function CountEntryModal({
         <ErrorBanner error={error} />
 
         <div className="rounded bg-slate-50 p-3 text-sm">
-          Nhập số lượng kiểm đếm thực tế của từng sản phẩm. Khi bấm <strong>"Chốt đợt kiểm kê & Cân tồn"</strong>, hệ thống sẽ tự động tạo phiếu điều chỉnh (ADJUSTMENT) tương ứng với độ chênh lệch.
+          Nhập số lượng kiểm đếm thực tế của từng sản phẩm. Khi bấm{' '}
+          <strong>"Chốt đợt kiểm kê & Cân tồn"</strong>, hệ thống sẽ tự động tạo phiếu điều chỉnh (ADJUSTMENT)
+          tương ứng với độ chênh lệch.
         </div>
 
         <div className="max-h-72 overflow-y-auto rounded border border-slate-200">
@@ -459,7 +443,9 @@ function CountEntryModal({
                   <tr key={item.id} className="hover:bg-slate-50">
                     <td className="px-3 py-2">
                       <div className="font-medium text-slate-800">{item.productName}</div>
-                      <div className="text-xs text-slate-500">{item.variantSku} - {item.variantName}</div>
+                      <div className="text-xs text-slate-500">
+                        {item.variantSku} - {item.variantName}
+                      </div>
                     </td>
                     <td className="px-3 py-2 text-right font-medium text-slate-600">
                       {formatVnd(item.systemQuantity)} {item.unit}
@@ -490,11 +476,7 @@ function CountEntryModal({
         </div>
 
         <div className="flex items-center justify-between border-t border-slate-200 pt-3">
-          <Button
-            variant="secondary"
-            onClick={() => saveMut.mutate()}
-            disabled={saveMut.isPending}
-          >
+          <Button variant="secondary" onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>
             {saveMut.isPending ? 'Đang lưu nháp...' : 'Lưu tạm thời'}
           </Button>
 
@@ -502,11 +484,7 @@ function CountEntryModal({
             <Button variant="secondary" onClick={onClose}>
               Đóng
             </Button>
-            <Button
-              variant="primary"
-              onClick={() => completeMut.mutate()}
-              disabled={completeMut.isPending}
-            >
+            <Button variant="primary" onClick={() => completeMut.mutate()} disabled={completeMut.isPending}>
               {completeMut.isPending ? 'Đang cân tồn...' : 'Chốt đợt kiểm kê & Cân tồn'}
             </Button>
           </div>
@@ -516,13 +494,7 @@ function CountEntryModal({
   );
 }
 
-function CountDetailModal({
-  countId,
-  onClose,
-}: {
-  countId: string;
-  onClose: () => void;
-}) {
+function CountDetailModal({ countId, onClose }: { countId: string; onClose: () => void }) {
   const { api } = useAuth();
   const { data: count, isLoading } = useQuery({
     queryKey: ['count-detail', countId],
@@ -558,7 +530,9 @@ function CountDetailModal({
           <div>
             <span className="text-slate-500">Người chốt: </span>
             <span className="text-slate-700">
-              {count.completedByName ? `${count.completedByName} (${formatDateTime(count.completedAt)})` : '—'}
+              {count.completedByName
+                ? `${count.completedByName} (${formatDateTime(count.completedAt)})`
+                : '—'}
             </span>
           </div>
         </div>
@@ -583,7 +557,9 @@ function CountDetailModal({
                     <td className="px-3 py-2 font-mono text-slate-700">{i.variantSku}</td>
                     <td className="px-3 py-2 font-medium text-slate-800">{i.productName}</td>
                     <td className="px-3 py-2 text-slate-600">{i.variantName}</td>
-                    <td className="px-3 py-2 text-right">{formatVnd(i.systemQuantity)} {i.unit}</td>
+                    <td className="px-3 py-2 text-right">
+                      {formatVnd(i.systemQuantity)} {i.unit}
+                    </td>
                     <td className="px-3 py-2 text-right font-medium">
                       {i.actualQuantity !== null ? `${formatVnd(i.actualQuantity)} ${i.unit}` : '—'}
                     </td>

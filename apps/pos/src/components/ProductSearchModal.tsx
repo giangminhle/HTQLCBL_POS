@@ -91,7 +91,8 @@ export function ProductSearchModal({
               >
                 <div>
                   <p className="font-semibold text-gray-900">
-                    {v.productName} <span className="text-sm font-normal text-gray-600">({v.variantName})</span>
+                    {v.productName}{' '}
+                    <span className="text-sm font-normal text-gray-600">({v.variantName})</span>
                   </p>
                   <p className="text-xs text-gray-500 font-mono mt-0.5">
                     SKU: {v.sku} · Đơn vị: {v.unit}

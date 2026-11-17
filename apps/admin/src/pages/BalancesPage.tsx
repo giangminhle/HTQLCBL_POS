@@ -9,18 +9,13 @@ import {
   type StockBalanceItem,
 } from '@retailchain/shared';
 import { useAuth, useSession } from '../auth/AuthContext';
-import {
-  Badge,
-  Button,
-  ErrorBanner,
-  Modal,
-  Pagination,
-  formatDateTime,
-  inputClass,
-} from '../components/ui';
+import { Badge, Button, ErrorBanner, Modal, Pagination, formatDateTime, inputClass } from '../components/ui';
 import { formatVnd } from '../lib/format';
 
-const MOVEMENT_LABELS: Record<StockMovementType, { label: string; tone: 'green' | 'red' | 'amber' | 'gray' }> = {
+const MOVEMENT_LABELS: Record<
+  StockMovementType,
+  { label: string; tone: 'green' | 'red' | 'amber' | 'gray' }
+> = {
   [StockMovementType.IMPORT]: { label: 'Nhập hàng', tone: 'green' },
   [StockMovementType.SALE]: { label: 'Bán hàng', tone: 'red' },
   [StockMovementType.RETURN]: { label: 'Trả hàng', tone: 'green' },
@@ -87,7 +82,9 @@ export function BalancesPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-slate-800">Tồn kho & Thẻ kho</h1>
-          <p className="text-sm text-slate-500">Tra cứu tồn kho thực tế, lịch sử xuất nhập và cảnh báo tồn tối thiểu</p>
+          <p className="text-sm text-slate-500">
+            Tra cứu tồn kho thực tế, lịch sử xuất nhập và cảnh báo tồn tối thiểu
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -219,12 +216,7 @@ export function BalancesPage() {
             </table>
           </div>
           {balanceData && (
-            <Pagination
-              page={page}
-              pageSize={15}
-              total={balanceData.total}
-              onPage={(p) => setPage(p)}
-            />
+            <Pagination page={page} pageSize={15} total={balanceData.total} onPage={(p) => setPage(p)} />
           )}
         </>
       ) : (
@@ -301,34 +293,20 @@ export function BalancesPage() {
             </table>
           </div>
           {lowStockData && (
-            <Pagination
-              page={page}
-              pageSize={15}
-              total={lowStockData.total}
-              onPage={(p) => setPage(p)}
-            />
+            <Pagination page={page} pageSize={15} total={lowStockData.total} onPage={(p) => setPage(p)} />
           )}
         </>
       )}
 
       {/* Stock Card Modal */}
       {stockCardTarget && (
-        <StockCardModal
-          target={stockCardTarget}
-          onClose={() => setStockCardTarget(null)}
-        />
+        <StockCardModal target={stockCardTarget} onClose={() => setStockCardTarget(null)} />
       )}
     </div>
   );
 }
 
-function StockCardModal({
-  target,
-  onClose,
-}: {
-  target: StockBalanceItem;
-  onClose: () => void;
-}) {
+function StockCardModal({ target, onClose }: { target: StockBalanceItem; onClose: () => void }) {
   const { api } = useAuth();
   const [page, setPage] = useState(1);
 
@@ -346,11 +324,7 @@ function StockCardModal({
   });
 
   return (
-    <Modal
-      title={`Thẻ kho: ${target.productName} (${target.variantSku})`}
-      onClose={onClose}
-      wide
-    >
+    <Modal title={`Thẻ kho: ${target.productName} (${target.variantSku})`} onClose={onClose} wide>
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2 rounded bg-slate-50 p-3 text-sm">
           <div>
@@ -363,7 +337,9 @@ function StockCardModal({
           </div>
           <div>
             <span className="text-slate-500">Tồn hiện tại: </span>
-            <strong className="text-emerald-700">{formatVnd(target.quantity)} {target.unit}</strong>
+            <strong className="text-emerald-700">
+              {formatVnd(target.quantity)} {target.unit}
+            </strong>
           </div>
         </div>
 
@@ -420,14 +396,7 @@ function StockCardModal({
           </table>
         </div>
 
-        {data && (
-          <Pagination
-            page={page}
-            pageSize={10}
-            total={data.total}
-            onPage={(p) => setPage(p)}
-          />
-        )}
+        {data && <Pagination page={page} pageSize={10} total={data.total} onPage={(p) => setPage(p)} />}
 
         <div className="mt-2 flex justify-end">
           <Button variant="secondary" onClick={onClose}>

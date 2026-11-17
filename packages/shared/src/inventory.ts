@@ -377,4 +377,3 @@ export const lowStockPageSchema = z.object({
   page: z.number().int(),
   pageSize: z.number().int(),
 });
-

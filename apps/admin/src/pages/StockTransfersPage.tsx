@@ -74,7 +74,9 @@ export function StockTransfersPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-slate-800">Chuyển kho (REQ-INV-02)</h1>
-          <p className="text-sm text-slate-500">Điều phối và luân chuyển hàng hóa giữa các kho và chi nhánh</p>
+          <p className="text-sm text-slate-500">
+            Điều phối và luân chuyển hàng hóa giữa các kho và chi nhánh
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -110,9 +112,7 @@ export function StockTransfersPage() {
             <option value={StockTransferStatus.RECEIVED}>Đã nhận hàng</option>
           </select>
 
-          {canWrite && (
-            <Button onClick={() => setCreating(true)}>+ Chuyển kho</Button>
-          )}
+          {canWrite && <Button onClick={() => setCreating(true)}>+ Chuyển kho</Button>}
         </div>
       </div>
 
@@ -173,18 +173,12 @@ export function StockTransfersPage() {
                         Chi tiết
                       </Button>
                       {canWrite && t.status === StockTransferStatus.DRAFT && isSender && (
-                        <Button
-                          onClick={() => sendMut.mutate(t.id)}
-                          disabled={sendMut.isPending}
-                        >
+                        <Button onClick={() => sendMut.mutate(t.id)} disabled={sendMut.isPending}>
                           Gửi hàng
                         </Button>
                       )}
                       {canWrite && t.status === StockTransferStatus.SENT && isReceiver && (
-                        <Button
-                          variant="primary"
-                          onClick={() => setReceivingTransfer(t)}
-                        >
+                        <Button variant="primary" onClick={() => setReceivingTransfer(t)}>
                           Nhận hàng
                         </Button>
                       )}
@@ -197,14 +191,7 @@ export function StockTransfersPage() {
         </table>
       </div>
 
-      {data && (
-        <Pagination
-          page={page}
-          pageSize={15}
-          total={data.total}
-          onPage={(p) => setPage(p)}
-        />
-      )}
+      {data && <Pagination page={page} pageSize={15} total={data.total} onPage={(p) => setPage(p)} />}
 
       {creating && (
         <CreateTransferModal
@@ -233,10 +220,7 @@ export function StockTransfersPage() {
       )}
 
       {viewingTransfer && (
-        <TransferDetailModal
-          transferId={viewingTransfer.id}
-          onClose={() => setViewingTransfer(null)}
-        />
+        <TransferDetailModal transferId={viewingTransfer.id} onClose={() => setViewingTransfer(null)} />
       )}
     </div>
   );
@@ -527,7 +511,9 @@ function ReceiveTransferModal({
                   <tr key={item.id}>
                     <td className="px-3 py-2">
                       <div className="font-medium text-slate-800">{item.productName}</div>
-                      <div className="text-xs text-slate-500">{item.variantSku} - {item.variantName}</div>
+                      <div className="text-xs text-slate-500">
+                        {item.variantSku} - {item.variantName}
+                      </div>
                     </td>
                     <td className="px-3 py-2 text-right font-medium">
                       {formatVnd(item.sentQuantity)} {item.unit}
@@ -569,13 +555,7 @@ function ReceiveTransferModal({
   );
 }
 
-function TransferDetailModal({
-  transferId,
-  onClose,
-}: {
-  transferId: string;
-  onClose: () => void;
-}) {
+function TransferDetailModal({ transferId, onClose }: { transferId: string; onClose: () => void }) {
   const { api } = useAuth();
   const { data: transfer, isLoading } = useQuery({
     queryKey: ['transfer-detail', transferId],
@@ -642,7 +622,9 @@ function TransferDetailModal({
                     <td className="px-3 py-2 font-mono text-slate-700">{i.variantSku}</td>
                     <td className="px-3 py-2 font-medium text-slate-800">{i.productName}</td>
                     <td className="px-3 py-2 text-slate-600">{i.variantName}</td>
-                    <td className="px-3 py-2 text-right font-medium">{formatVnd(i.sentQuantity)} {i.unit}</td>
+                    <td className="px-3 py-2 text-right font-medium">
+                      {formatVnd(i.sentQuantity)} {i.unit}
+                    </td>
                     <td className="px-3 py-2 text-right font-medium">
                       {i.receivedQuantity !== null ? `${formatVnd(i.receivedQuantity)} ${i.unit}` : '—'}
                     </td>

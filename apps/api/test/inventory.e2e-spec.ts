@@ -443,7 +443,9 @@ describe('Inventory & Ledger (REQ-INV-01..04) (e2e)', () => {
         .expect(200);
 
       expect(res.body.items.length).toBeGreaterThanOrEqual(1);
-      const alert = res.body.items.find((i: { variantId: string; deficit: number }) => i.variantId === testVariantId);
+      const alert = res.body.items.find(
+        (i: { variantId: string; deficit: number }) => i.variantId === testVariantId,
+      );
       expect(alert).toBeDefined();
       expect(alert.deficit).toBeGreaterThan(0);
     });

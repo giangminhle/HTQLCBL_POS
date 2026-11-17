@@ -49,7 +49,8 @@ export function ManagerApprovalModal({
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
         <h3 className="text-lg font-bold text-gray-900">{title}</h3>
         <p className="mt-1 text-xs text-gray-500">
-          Chỉ Quản lý chi nhánh (BRANCH_MANAGER) hoặc Chủ chuỗi (OWNER) mới có quyền duyệt chiết khấu vượt hạn mức.
+          Chỉ Quản lý chi nhánh (BRANCH_MANAGER) hoặc Chủ chuỗi (OWNER) mới có quyền duyệt chiết khấu vượt hạn
+          mức.
         </p>
 
         {error && (

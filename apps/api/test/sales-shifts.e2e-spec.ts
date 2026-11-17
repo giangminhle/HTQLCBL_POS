@@ -56,7 +56,10 @@ describe('Sales, Shifts & POS Returns (REQ-POS-01..04, REQ-SHF-01) (e2e)', () =>
     it('REQ-SHF-01: cashier opens a shift with opening cash', async () => {
       // If cashier01 has an open shift from previous runs, close it first
       const openShift = await prisma.shift.findFirst({
-        where: { cashierId: (await prisma.user.findUniqueOrThrow({ where: { username: 'cashier01' } })).id, status: 'OPEN' },
+        where: {
+          cashierId: (await prisma.user.findUniqueOrThrow({ where: { username: 'cashier01' } })).id,
+          status: 'OPEN',
+        },
       });
       if (openShift) {
         await prisma.shift.update({
@@ -85,11 +88,7 @@ describe('Sales, Shifts & POS Returns (REQ-POS-01..04, REQ-SHF-01) (e2e)', () =>
     });
 
     it('REQ-SHF-01: cannot open a 2nd shift while 1st is still OPEN', async () => {
-      await http()
-        .post('/shifts/open')
-        .set(bearer(cashier01))
-        .send({ openingCash: 500000 })
-        .expect(400);
+      await http().post('/shifts/open').set(bearer(cashier01)).send({ openingCash: 500000 }).expect(400);
     });
   });
 

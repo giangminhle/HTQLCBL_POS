@@ -1,7 +1,12 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { createAuthSession, memoryStorageAdapter, type StoredSession, type ShiftSummary } from '@retailchain/shared';
+import {
+  createAuthSession,
+  memoryStorageAdapter,
+  type StoredSession,
+  type ShiftSummary,
+} from '@retailchain/shared';
 import { AuthProvider } from './auth';
 import { PaymentModal, type CartItem } from './components/PaymentModal';
 import { ReceiptPrint } from './components/ReceiptPrint';
@@ -180,12 +185,7 @@ describe('ReceiptPrint (REQ-POS-03)', () => {
 
 describe('OpenShiftModal & CloseShiftModal (REQ-SHF-01)', () => {
   it('OpenShiftModal renders opening cash form correctly', async () => {
-    await renderWithAuth(
-      <OpenShiftModal
-        onClose={vi.fn()}
-        onSuccess={vi.fn()}
-      />,
-    );
+    await renderWithAuth(<OpenShiftModal onClose={vi.fn()} onSuccess={vi.fn()} />);
 
     expect(screen.getByText('Mở ca làm việc mới')).toBeInTheDocument();
     const input = screen.getByLabelText(/Tiền mặt đầu ca/i);
@@ -220,13 +220,7 @@ describe('OpenShiftModal & CloseShiftModal (REQ-SHF-01)', () => {
       expectedCash: 1300000, // 500,000 + 800,000
     };
 
-    await renderWithAuth(
-      <CloseShiftModal
-        summary={mockSummary}
-        onClose={vi.fn()}
-        onSuccess={vi.fn()}
-      />,
-    );
+    await renderWithAuth(<CloseShiftModal summary={mockSummary} onClose={vi.fn()} onSuccess={vi.fn()} />);
 
     expect(screen.getByText('Chốt ca làm việc')).toBeInTheDocument();
     expect(screen.getByText('1.300.000 ₫')).toBeInTheDocument(); // expectedCash
