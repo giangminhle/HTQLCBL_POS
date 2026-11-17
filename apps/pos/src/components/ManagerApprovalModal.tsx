@@ -7,6 +7,7 @@ const authResponseSchema = z.object({
   authorized: z.boolean(),
   managerName: z.string(),
   managerRole: z.string(),
+  approvalToken: z.string(),
 });
 
 export function ManagerApprovalModal({
@@ -16,7 +17,7 @@ export function ManagerApprovalModal({
 }: {
   title?: string;
   onClose: () => void;
-  onApproved: (managerName: string) => void;
+  onApproved: (managerName: string, approvalToken: string) => void;
 }) {
   const { api } = useAuth();
   const [username, setUsername] = useState('');
@@ -30,7 +31,7 @@ export function ManagerApprovalModal({
         password,
       }),
     onSuccess: (data) => {
-      onApproved(data.managerName);
+      onApproved(data.managerName, data.approvalToken);
       onClose();
     },
     onError: (err: { message?: string }) => {

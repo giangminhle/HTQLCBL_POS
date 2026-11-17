@@ -43,7 +43,7 @@ export class SalesController {
   authorizeDiscount(
     @CurrentUser() user: AuthUser,
     @Body() dto: AuthorizeDiscountDto,
-  ): Promise<{ authorized: boolean; managerName: string; managerRole: Role }> {
+  ): Promise<{ authorized: boolean; managerName: string; managerRole: Role; approvalToken: string }> {
     return this.sales.authorizeDiscount(user, dto);
   }
 

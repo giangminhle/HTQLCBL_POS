@@ -29,7 +29,7 @@ jobs:
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       # E2E tests reset this database before running (name must end with _test).
-      DATABASE_URL: postgresql://retail:retail_ci_password@localhost:5432/retailchain_test?schema=public
+      DATABASE_URL: postgresql://retail:retail_ci_password@localhost:5432/retailchain_test?schema=public&connection_limit=30&pool_timeout=30
       JWT_ACCESS_SECRET: ci-access-secret-0123456789abcdef
       JWT_REFRESH_SECRET: ci-refresh-secret-0123456789abcdef
     steps:

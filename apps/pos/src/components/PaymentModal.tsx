@@ -31,6 +31,7 @@ export function PaymentModal({
   total,
   items,
   note,
+  discountApprovalToken,
   onClose,
   onSuccess,
 }: {
@@ -41,6 +42,7 @@ export function PaymentModal({
   total: number;
   items: CartItem[];
   note?: string;
+  discountApprovalToken?: string;
   onClose: () => void;
   onSuccess: (sale: SaleDetail) => void;
 }) {
@@ -115,6 +117,7 @@ export function PaymentModal({
       shiftId,
       subtotal,
       discount,
+      discountApprovalToken,
       total,
       note: note || null,
       createdAtClient: new Date().toISOString(),

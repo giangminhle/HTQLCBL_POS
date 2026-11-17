@@ -1,9 +1,13 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { Prisma } from '@prisma/client';
 import {
+  AuditAction,
   ErrorCode,
   Role,
   SaleStatus,
   StockMovementType,
+  isDiscountOverLimit,
   type AuthUser,
   type AuthorizeDiscountInput,
   type CreateSaleInput,
@@ -16,8 +20,9 @@ import {
 } from '@retailchain/shared';
 import { AuditSnapshotRegistry } from '../audit/audit-snapshot.registry';
 import { assertBranchAccess, branchFilter } from '../common/authz/branch-scope';
-import { badRequest, notFound, unauthorized } from '../common/http-errors';
+import { badRequest, forbidden, notFound, unauthorized } from '../common/http-errors';
 import { verifyPassword } from '../common/security/password';
+import { LOCK_DURATION_MS, MAX_FAILED_LOGINS } from '../auth/auth.constants';
 import { PrismaService } from '../prisma/prisma.service';
 import { BranchesService } from '../branches/branches.service';
 import { InventoryService } from '../inventory/inventory.service';
@@ -37,6 +42,7 @@ export class SalesService implements OnModuleInit {
     private readonly products: ProductsService,
     private readonly inventory: InventoryService,
     private readonly snapshots: AuditSnapshotRegistry,
+    private readonly jwt: JwtService,
   ) {}
 
   onModuleInit(): void {
@@ -53,49 +59,37 @@ export class SalesService implements OnModuleInit {
     });
   }
 
-  private async generateSaleCode(branchId: string): Promise<string> {
-    const branch = await this.prisma.branch.findUniqueOrThrow({ where: { id: branchId } });
+  private async generateSaleCode(
+    branchId: string,
+    tx: Prisma.TransactionClient = this.prisma,
+  ): Promise<string> {
+    const branch = await tx.branch.findUniqueOrThrow({ where: { id: branchId } });
     const cleanBranchCode = branch.code.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
 
-    const now = new Date();
-    const yy = String(now.getFullYear()).slice(-2);
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
-    const datePrefix = `${yy}${mm}${dd}`;
-
-    const countToday = await this.prisma.sale.count({
-      where: {
-        branchId,
-        createdAtServer: {
-          gte: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
-        },
-      },
-    });
-
-    const seq = String(countToday + 1).padStart(4, '0');
+    const vnDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+    const day = `${vnDate.getFullYear()}-${String(vnDate.getMonth() + 1).padStart(2, '0')}-${String(vnDate.getDate()).padStart(2, '0')}`;
+    const datePrefix = `${String(vnDate.getFullYear()).slice(-2)}${String(vnDate.getMonth() + 1).padStart(2, '0')}${String(vnDate.getDate()).padStart(2, '0')}`;
+    const rows = await tx.$queryRaw<
+      Array<{ value: number }>
+    >`INSERT INTO document_code_counters (branch_id, document_type, business_date, value) VALUES (${branchId}::uuid, 'SALE', ${day}::date, 1) ON CONFLICT (branch_id, document_type, business_date) DO UPDATE SET value = document_code_counters.value + 1 RETURNING value`;
+    const seq = String(rows[0]!.value).padStart(4, '0');
     return `HD-${cleanBranchCode}-${datePrefix}-${seq}`;
   }
 
-  private async generateReturnCode(branchId: string): Promise<string> {
-    const branch = await this.prisma.branch.findUniqueOrThrow({ where: { id: branchId } });
+  private async generateReturnCode(
+    branchId: string,
+    tx: Prisma.TransactionClient = this.prisma,
+  ): Promise<string> {
+    const branch = await tx.branch.findUniqueOrThrow({ where: { id: branchId } });
     const cleanBranchCode = branch.code.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
 
-    const now = new Date();
-    const yy = String(now.getFullYear()).slice(-2);
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
-    const datePrefix = `${yy}${mm}${dd}`;
-
-    const countToday = await this.prisma.saleReturn.count({
-      where: {
-        branchId,
-        createdAt: {
-          gte: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
-        },
-      },
-    });
-
-    const seq = String(countToday + 1).padStart(4, '0');
+    const vnDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+    const day = `${vnDate.getFullYear()}-${String(vnDate.getMonth() + 1).padStart(2, '0')}-${String(vnDate.getDate()).padStart(2, '0')}`;
+    const datePrefix = `${String(vnDate.getFullYear()).slice(-2)}${String(vnDate.getMonth() + 1).padStart(2, '0')}${String(vnDate.getDate()).padStart(2, '0')}`;
+    const rows = await tx.$queryRaw<
+      Array<{ value: number }>
+    >`INSERT INTO document_code_counters (branch_id, document_type, business_date, value) VALUES (${branchId}::uuid, 'RETURN', ${day}::date, 1) ON CONFLICT (branch_id, document_type, business_date) DO UPDATE SET value = document_code_counters.value + 1 RETURNING value`;
+    const seq = String(rows[0]!.value).padStart(4, '0');
     return `TH-${cleanBranchCode}-${datePrefix}-${seq}`;
   }
 
@@ -105,10 +99,31 @@ export class SalesService implements OnModuleInit {
       where: { id: dto.id },
     });
     if (existing) {
+      assertBranchAccess(user, existing.branchId);
       return this.getSale(user, dto.id);
     }
 
     assertBranchAccess(user, dto.branchId);
+
+    let approvedByManagerId: string | null = null;
+    const requiresApproval =
+      dto.items.some((item) => isDiscountOverLimit(item.discount, item.quantity * item.unitPrice)) ||
+      isDiscountOverLimit(dto.discount, dto.subtotal);
+    if (requiresApproval) {
+      try {
+        const claims = await this.jwt.verifyAsync<{
+          managerId: string;
+          branchId: string | null;
+          purpose: string;
+        }>(dto.discountApprovalToken ?? '');
+        if (claims.purpose !== 'discount' || (claims.branchId !== null && claims.branchId !== dto.branchId)) {
+          throw new Error('invalid claims');
+        }
+        approvedByManagerId = claims.managerId;
+      } catch {
+        throw forbidden('DISCOUNT_APPROVAL_REQUIRED', 'Cần quản lý phê duyệt mức chiết khấu này');
+      }
+    }
 
     // 2. Validate shift
     const shift = await this.prisma.shift.findUnique({
@@ -151,56 +166,76 @@ export class SalesService implements OnModuleInit {
     }
 
     // 4. Generate human-readable code
-    const code = await this.generateSaleCode(dto.branchId);
-
     // 5. Atomic persistence: Sale + Items + Payments + Inventory Movement (SALE)
-    await this.prisma.$transaction(async (tx) => {
-      await tx.sale.create({
-        data: {
-          id: dto.id,
-          code,
-          branchId: dto.branchId,
-          shiftId: dto.shiftId,
-          cashierId: user.id,
-          customerId: dto.customerId ?? null,
-          subtotal: dto.subtotal,
-          discount: dto.discount,
-          total: dto.total,
-          status: 'COMPLETED',
-          note: dto.note ?? null,
-          createdAtClient: new Date(dto.createdAtClient),
-          items: {
-            create: dto.items.map((i) => ({
-              variantId: i.variantId,
-              quantity: i.quantity,
-              unitPrice: i.unitPrice,
-              discount: i.discount,
-              lineTotal: i.lineTotal,
-            })),
-          },
-          payments: {
-            create: dto.payments.map((p) => ({
-              method: p.method,
-              amount: p.amount,
-              reference: p.reference ?? null,
-            })),
-          },
+    try {
+      await this.prisma.$transaction(
+        async (tx) => {
+          const code = await this.generateSaleCode(dto.branchId, tx);
+          await tx.sale.create({
+            data: {
+              id: dto.id,
+              code,
+              branchId: dto.branchId,
+              shiftId: dto.shiftId,
+              cashierId: user.id,
+              customerId: dto.customerId ?? null,
+              subtotal: dto.subtotal,
+              discount: dto.discount,
+              total: dto.total,
+              approvedByManagerId,
+              status: 'COMPLETED',
+              note: dto.note ?? null,
+              createdAtClient: new Date(dto.createdAtClient),
+              items: {
+                create: dto.items.map((i) => ({
+                  variantId: i.variantId,
+                  quantity: i.quantity,
+                  unitPrice: i.unitPrice,
+                  discount: i.discount,
+                  lineTotal: i.lineTotal,
+                })),
+              },
+              payments: {
+                create: dto.payments.map((p) => ({
+                  method: p.method,
+                  amount: p.amount,
+                  reference: p.reference ?? null,
+                })),
+              },
+            },
+          });
+
+          // Apply inventory movement (negative quantity for sale)
+          const movements = dto.items.map((item) => ({
+            branchId: dto.branchId,
+            variantId: item.variantId,
+            type: StockMovementType.SALE,
+            quantity: -item.quantity,
+            refType: 'Sale',
+            refId: dto.id,
+            createdBy: user.id,
+          }));
+
+          await this.inventory.applyMovements(movements, tx);
         },
-      });
-
-      // Apply inventory movement (negative quantity for sale)
-      const movements = dto.items.map((item) => ({
-        branchId: dto.branchId,
-        variantId: item.variantId,
-        type: StockMovementType.SALE,
-        quantity: -item.quantity,
-        refType: 'Sale',
-        refId: dto.id,
-        createdBy: user.id,
-      }));
-
-      await this.inventory.applyMovements(movements, tx);
-    });
+        { maxWait: 30_000, timeout: 30_000 },
+      );
+    } catch (err) {
+      if (
+        (err instanceof Prisma.PrismaClientKnownRequestError &&
+          err.code === 'P2002' &&
+          (err.meta?.target as string[] | undefined)?.includes('id')) ||
+        ((err as { code?: string; meta?: { target?: string[] } })?.code === 'P2002' &&
+          ((err as { meta?: { target?: string[] } }).meta?.target ?? []).includes('id'))
+      ) {
+        const winner = await this.prisma.sale.findUnique({ where: { id: dto.id } });
+        if (winner) {
+          assertBranchAccess(user, winner.branchId);
+          return this.getSale(user, dto.id);
+        }
+      }
+      throw err;
+    }
 
     return this.getSale(user, dto.id);
   }
@@ -258,11 +293,10 @@ export class SalesService implements OnModuleInit {
       totalRefund += returnItem.refundAmount;
     }
 
-    const returnCode = await this.generateReturnCode(sale.branchId);
-
     let returnRecordId = '';
 
     await this.prisma.$transaction(async (tx) => {
+      const returnCode = await this.generateReturnCode(sale.branchId, tx);
       const createdReturn = await tx.saleReturn.create({
         data: {
           code: returnCode,
@@ -371,30 +405,87 @@ export class SalesService implements OnModuleInit {
     authorized: boolean;
     managerName: string;
     managerRole: Role;
+    approvalToken: string;
   }> {
     const targetUser = await this.users.findForLogin(dto.username);
     if (!targetUser) {
+      await this.writeDiscountAudit(AuditAction.LOGIN_FAILED, null, null, {
+        username: dto.username,
+        reason: 'UNKNOWN_USER',
+      });
       throw unauthorized(ErrorCode.INVALID_CREDENTIALS, 'Tên đăng nhập hoặc mật khẩu quản lý không đúng');
     }
 
+    if (targetUser.lockedUntil && targetUser.lockedUntil > new Date()) {
+      await this.writeDiscountAudit(AuditAction.LOGIN_FAILED, targetUser.id, targetUser.branchId, {
+        reason: 'LOCKED',
+      });
+      throw unauthorized(ErrorCode.INVALID_CREDENTIALS, 'Tài khoản quản lý đang bị khóa');
+    }
     const passwordOk = await verifyPassword(targetUser.passwordHash, dto.password);
     if (!passwordOk) {
+      const failures = await this.users.incrementFailedLogins(targetUser.id);
+      await this.writeDiscountAudit(AuditAction.LOGIN_FAILED, targetUser.id, targetUser.branchId, {
+        reason: 'WRONG_PASSWORD',
+        failedLoginCount: failures,
+      });
+      if (failures >= MAX_FAILED_LOGINS) {
+        const lockedUntil = new Date(Date.now() + LOCK_DURATION_MS);
+        await this.users.lock(targetUser.id, lockedUntil);
+        await this.writeDiscountAudit(AuditAction.ACCOUNT_LOCKED, targetUser.id, targetUser.branchId, {
+          lockedUntil,
+        });
+      }
       throw unauthorized(ErrorCode.INVALID_CREDENTIALS, 'Tên đăng nhập hoặc mật khẩu quản lý không đúng');
     }
+
+    if (!targetUser.isActive) {
+      await this.writeDiscountAudit(AuditAction.LOGIN_FAILED, targetUser.id, targetUser.branchId, {
+        reason: 'DISABLED',
+      });
+      throw unauthorized(ErrorCode.INVALID_CREDENTIALS, 'Tài khoản quản lý đã bị vô hiệu');
+    }
+    if (targetUser.failedLoginCount > 0 || targetUser.lockedUntil)
+      await this.users.clearFailedLogins(targetUser.id);
 
     const isOwner = targetUser.role === Role.OWNER;
     const isBranchManager =
       targetUser.role === Role.BRANCH_MANAGER && (!user.branchId || targetUser.branchId === user.branchId);
 
     if (!isOwner && !isBranchManager) {
+      await this.writeDiscountAudit(AuditAction.LOGIN_FAILED, targetUser.id, targetUser.branchId, {
+        reason: 'ROLE_OR_BRANCH_DENIED',
+      });
       throw badRequest('Tài khoản này không có quyền phê duyệt giảm giá cho chi nhánh');
     }
 
+    const approvalToken = await this.jwt.signAsync(
+      { managerId: targetUser.id, branchId: targetUser.branchId, purpose: 'discount' },
+      { expiresIn: '5m' },
+    );
+    await this.writeDiscountAudit(AuditAction.LOGIN, targetUser.id, targetUser.branchId, {
+      purpose: 'discount',
+      cashierId: user.id,
+    });
     return {
       authorized: true,
       managerName: targetUser.fullName,
       managerRole: targetUser.role as Role,
+      approvalToken,
     };
+  }
+
+  private async writeDiscountAudit(
+    action: string,
+    userId: string | null,
+    branchId: string | null,
+    after: unknown,
+  ) {
+    await this.prisma.auditLog
+      .create({
+        data: { action, entity: 'DiscountApproval', userId, branchId, after: after as Prisma.InputJsonValue },
+      })
+      .catch(() => undefined);
   }
 
   async getSale(user: AuthUser, id: string): Promise<SaleDetail> {

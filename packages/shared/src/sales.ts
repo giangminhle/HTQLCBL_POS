@@ -128,6 +128,7 @@ export const CreateSaleSchema = z.object({
   customerId: z.string().uuid().nullish(),
   subtotal: z.number().int().nonnegative(),
   discount: z.number().int().nonnegative().default(0),
+  discountApprovalToken: z.string().optional(),
   total: z.number().int().nonnegative(),
   note: z.string().max(500).nullish(),
   createdAtClient: z.string().datetime({ message: 'createdAtClient phải là chuỗi ISO datetime' }),

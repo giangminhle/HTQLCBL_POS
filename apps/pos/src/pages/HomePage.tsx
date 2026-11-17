@@ -48,6 +48,7 @@ export function HomePage() {
   // Cart state
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orderDiscount, setOrderDiscount] = useState<number>(0);
+  const [discountApprovalToken, setDiscountApprovalToken] = useState<string>();
   const [barcodeInput, setBarcodeInput] = useState('');
   const [barcodeError, setBarcodeError] = useState<string | null>(null);
 
@@ -688,11 +689,13 @@ export function HomePage() {
           discount={summary.totalDiscount}
           total={summary.total}
           items={cart}
+          discountApprovalToken={discountApprovalToken}
           onClose={() => setPaymentModalOpen(false)}
           onSuccess={(createdSale) => {
             setPaymentModalOpen(false);
             setCart([]);
             setOrderDiscount(0);
+            setDiscountApprovalToken(undefined);
             setPrintedSale(createdSale);
             refetchShift();
           }}
@@ -702,7 +705,8 @@ export function HomePage() {
       {approvalModal && (
         <ManagerApprovalModal
           onClose={() => setApprovalModal(null)}
-          onApproved={(mgr) => {
+          onApproved={(mgr, token) => {
+            setDiscountApprovalToken(token);
             alert(`Đã được Quản lý ${mgr} phê duyệt chiết khấu!`);
             if (approvalModal.type === 'item' && approvalModal.variantId) {
               applyItemDiscount(approvalModal.variantId, approvalModal.discountAmount);
