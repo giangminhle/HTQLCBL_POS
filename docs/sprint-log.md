@@ -118,7 +118,7 @@
 - **Thời gian:** 2026-11-17 → 2026-11-18
 - **Nhánh:** `feature/sprint-2-products` → PR vào `develop`
 - **REQ:** REQ-PRD-01, REQ-PRC-01 (sửa theo CR-004). Chuẩn bị cho REQ-POS-05: `GET /sync/catalog`.
-- **Trạng thái:** ✅ **Hoàn thành tại máy** – `pnpm lint && pnpm test && pnpm build` qua. Chờ CI trên PR.
+- **Trạng thái:** ✅ **Hoàn thành** – `pnpm lint && pnpm test && pnpm build` qua tại máy và trên CI (commit 8ad8f55, cùng lần đẩy Sprint 3–4 lên `develop`).
 
 ### Quyết định đã duyệt trước khi code
 | # | Quyết định | Ghi ở |
@@ -212,6 +212,8 @@ tương lai cho CH-01 trong khi seed đã có bảng giá vô thời hạn (409 
   - E2E: **79** trên `retailchain_test` (gồm **50 lệnh trừ kho đồng thời trên cùng một sản phẩm**, test tính bất biến `sum(movement) === StockBalance`, test chuyển kho, kiểm kê, cảnh báo tồn, phân quyền chi nhánh).
 - `pnpm build`: qua toàn bộ 4 workspace package (@retailchain/shared, @retailchain/api, @retailchain/admin, @retailchain/pos).
 
+- **Trạng thái:** ✅ **Hoàn thành** – qua trên CI (commit 8ad8f55).
+
 ### Tồn đọng
 - Chuẩn bị Sprint 4: POS bán hàng và ca làm việc (REQ-POS-01..04, REQ-SHF-01).
 
@@ -243,7 +245,21 @@ tương lai cho CH-01 trong khi seed đã có bảng giá vô thời hạn (409 
   - POS: `apps/pos/src/pos.test.tsx` (14/14 tests) và `apps/pos/src/sales-components.test.tsx` (5/5 tests giao diện thanh toán, in ấn, mở/chốt ca).
 - `pnpm build`: qua toàn bộ 4 workspace package.
 
+### Rà soát sau Sprint 4 (nhánh `fix/sprint-4-review`)
+Rà soát code phát hiện các lỗi sau, đã sửa kèm test (unit + E2E):
+- 29 file chưa format, `pnpm format:check` lỗi (CI sẽ đỏ).
+- Chiết khấu > 10% chỉ chặn ở giao diện; server nay bắt buộc token phê duyệt 5 phút cùng chi nhánh (403 `DISCOUNT_APPROVAL_REQUIRED`), lưu `approvedByManagerId`.
+- `authorize-discount` cho dò mật khẩu quản lý: nay khóa 15 phút sau 5 lần sai như đăng nhập và ghi `audit_logs`.
+- Gửi trùng id hóa đơn đồng thời gây 500: nay bắt `P2002`, trả hóa đơn đã có (E2E 2 request song song).
+- Mã hóa đơn/phiếu trả sinh bằng `count + 1` bị trùng khi đồng thời: nay dùng bảng đếm `document_code_counters` (UPSERT trong transaction), ngày theo giờ Việt Nam (E2E 20 hóa đơn song song).
+- Đọc được hóa đơn chi nhánh khác qua id trùng: nay kiểm tra chi nhánh trước.
+
+Kết quả: lint, format, test (api 116 unit + 95 E2E; shared, admin, pos), build qua tại máy và trên CI (commit 8ad8f55).
+- **Trạng thái:** ✅ **Hoàn thành**.
+
 ### Tồn đọng
+- Theo quy tắc 4: hóa đơn offline gửi lên sau khi ca đã đóng vẫn bị từ chối; chưa ghi cảnh báo `NEGATIVE_STOCK` khi tồn âm. Xử lý ở Sprint 5.
+- Token phê duyệt chiết khấu dùng lại được trong 5 phút (chưa gắn với một hóa đơn).
 - Chuẩn bị Sprint 5: Bán hàng ngoại tuyến và đồng bộ tự động (REQ-POS-05, outbox worker, SQLite/Dexie IndexedDB, sync endpoint).
 
 
