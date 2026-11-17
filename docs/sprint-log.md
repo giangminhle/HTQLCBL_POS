@@ -40,8 +40,9 @@
 - **Mục tiêu:** Đăng nhập và phân quyền 5 vai trò, quản lý chi nhánh và người dùng, nhật ký thao tác; admin web và POS có
   đăng nhập; POS giữ phiên khi offline.
 - **REQ:** REQ-AUTH-01, REQ-AUTH-02 (mới, từ CR-002), REQ-BR-01, REQ-AUD-01; một phần REQ-POS-05 (phiên offline).
-- **Trạng thái:** ⏳ **Chưa hoàn thành** – còn chờ chạy E2E trên PostgreSQL tại máy (cần điền mật khẩu DB vào
-  `apps/api/.env.test`).
+- **Trạng thái:** ✅ **Hoàn thành tại máy** – `pnpm lint && pnpm test && pnpm build` qua (gồm E2E trên PostgreSQL).
+  Còn chờ: CI xanh trên GitHub; mục DoD "chạy bằng `docker compose up`" chưa kiểm chứng tại máy vì chưa có Docker (R-06),
+  hiện chỉ được kiểm tra gián tiếp qua job build image của CI.
 
 ### Quyết định đã duyệt trước khi code
 | # | Quyết định | Ghi ở |
@@ -86,13 +87,28 @@
 | Mã lỗi riêng: `423 ACCOUNT_LOCKED`, `403 PASSWORD_CHANGE_REQUIRED`, `400 WRONG_PASSWORD` (không dùng 401 khi sai mật khẩu hiện tại) | 401 sẽ khiến client tưởng phiên hết hạn và tự refresh |
 | Bỏ `class-validator`, dùng `nestjs-zod` | Một nguồn schema (Zod trong `shared`) cho API, admin, POS |
 
-### Kết quả kiểm chứng (tại máy)
-- `pnpm lint`: qua (0 lỗi, 12 cảnh báo `react-refresh/only-export-components` vì file trang export kèm hàm tiện ích).
-- Unit test: **113 qua** (api 62, shared 21, admin 16, pos 14).
+### Kết quả kiểm chứng (tại máy, 2026-11-17)
+- DB: PostgreSQL **18.3** cài trên máy (dự án quy định 16; CI dùng 16). `retailchain_dev`: đã áp 2 migration, seed
+  4 chi nhánh và 7 tài khoản.
+- `pnpm lint`: qua (0 lỗi, 13 cảnh báo `react-refresh/only-export-components` vì file trang export kèm hàm tiện ích).
+- `pnpm test`: qua.
+  - Unit: **123** (api 72, shared 21, admin 16, pos 14).
+  - E2E API trên `retailchain_test`: **41**.
 - `pnpm build`: qua. Bản build admin/POS không có script inline; `vite preview` trả đúng header CSP.
-- **Chưa chạy:** E2E API (`auth.e2e-spec.ts`, `branches-users.e2e-spec.ts`, `health.e2e-spec.ts`) vì
-  `apps/api/.env.test` còn `CHANGE_ME`.
+- Sau khi chạy E2E, `retailchain_dev` vẫn nguyên (7 user, không có user `e2e.*`).
+
+### Lỗi phát hiện và sửa trong Sprint (test tái hiện trước, sửa sau)
+| # | Lỗi | Phát hiện bởi | Test tái hiện | Sửa |
+|---|---|---|---|---|
+| 1 | E2E kết nối nhầm **`retailchain_dev`**: `@prisma/client` tự nạp `apps/api/.env` khi import, `dotenv` không ghi đè nên `.env.test` bị bỏ qua. Nếu không có chốt chặn, `migrate reset` đã xóa DB dev | Chốt chặn tên DB (in `current_database()`, chỉ cho phép `retailchain_test`) | `test/load-test-env.spec.ts` | `loadTestEnv` dùng `override: true` (commit `be4e85e`) |
+| 2 | Thiết bị cũ refresh sau khi người dùng **đổi mật khẩu** bị coi là "dùng lại token", làm thu hồi luôn phiên mới vừa tạo | E2E `change-password` | `auth.service.spec.ts`: token bị thu hồi nhưng chưa xoay vòng → 401, không thu hồi phiên khác; E2E "old device refreshing after a password change…" | Chỉ coi là đánh cắp khi token **đã xoay vòng** (`replaced_by_id` khác null). ADR-001 đã cập nhật (commit `50b0685`) |
+
+### Bổ sung theo yêu cầu khi chạy E2E
+- `test/prepare-test-database.ts`: mỗi lần chạy E2E đều in host, DB và user (không in mật khẩu), sau đó in
+  `Connected database: …` lấy từ `SELECT current_database()`. Script **dừng trước khi reset** nếu tên DB trong URL hoặc DB
+  thực sự đang kết nối khác `retailchain_test`. Có 7 unit test (`test/db-guard.spec.ts`).
 
 ### Tồn đọng
-- Chạy E2E tại máy và trên CI, sau đó chuyển trạng thái RTM sang Hoàn thành.
-- Playwright E2E giao diện: vẫn để Sprint POS đầu tiên.
+- Push lên GitHub, chờ CI xanh (E2E trên PostgreSQL 16, build image Docker).
+- Kiểm chứng `docker compose up` khi cài Docker (trước Sprint 8).
+- Playwright E2E giao diện: để Sprint POS đầu tiên.

@@ -44,9 +44,12 @@ quyền cao nhất (OWNER) luôn có phiên ngắn.
 ### 2. Xoay vòng refresh token và phát hiện dùng lại
 - Mỗi lần gọi `/auth/refresh`, token cũ bị thu hồi và server cấp token mới. Thao tác này là một transaction, có điều kiện
   `revokedAt IS NULL`, nên hai request đồng thời không thể cùng xoay vòng một token.
-- Nếu một token **đã bị thu hồi** được gửi lại, server coi là token đã bị đánh cắp: **thu hồi toàn bộ phiên của user**
-  (tăng `users.token_version` và đánh dấu mọi refresh token là revoked), ghi audit `REFRESH_TOKEN_REUSE`, trả
-  `401 REFRESH_TOKEN_REUSED`.
+- Nếu một token **đã bị xoay vòng** (đã có token thay thế, `replaced_by_id` khác null) được gửi lại, server coi là token
+  đã bị đánh cắp: **thu hồi toàn bộ phiên của user** (tăng `users.token_version` và đánh dấu mọi refresh token là revoked),
+  ghi audit `REFRESH_TOKEN_REUSE`, trả `401 REFRESH_TOKEN_REUSED`.
+- Token bị thu hồi do **logout, đổi mật khẩu, đặt lại mật khẩu** (không có token thay thế) khi gửi lại chỉ nhận
+  `401 INVALID_REFRESH_TOKEN`, không thu hồi các phiên khác. *Sửa trong Sprint 1 sau khi E2E phát hiện:* nếu coi các token
+  này là bị đánh cắp, thì thiết bị cũ (ví dụ POS) refresh sau khi người dùng đổi mật khẩu sẽ làm mất luôn phiên mới vừa tạo.
 - Để tránh báo nhầm khi người dùng mở nhiều tab: client chỉ chạy một lần refresh tại một thời điểm và khóa giữa các tab
   bằng Web Locks API. Trước khi refresh, client đọc lại storage; nếu tab khác đã xoay vòng thì dùng token mới đó.
 

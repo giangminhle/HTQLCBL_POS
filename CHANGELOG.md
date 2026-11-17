@@ -16,6 +16,12 @@
 - CSP chặt cho admin/POS, luật ESLint cấm `dangerouslySetInnerHTML`. (ADR-001)
 - Seed: kho tổng, 3 cửa hàng, tài khoản mẫu cho 5 vai trò.
 
+### Fixed
+- E2E nạp nhầm `DATABASE_URL` của DB dev (Prisma tự nạp `.env`); `.env.test` giờ ghi đè. Script E2E in tên DB đang kết nối
+  và dừng trước khi reset nếu không phải `retailchain_test`.
+- Refresh token bị thu hồi do logout/đổi mật khẩu khi gửi lại không còn bị coi là đánh cắp (trước đây làm mất phiên mới
+  sau khi đổi mật khẩu). Chỉ token đã xoay vòng mới kích hoạt thu hồi toàn bộ phiên.
+
 ### Changed
 - Biến môi trường `JWT_REFRESH_TTL` tách thành `JWT_REFRESH_TTL_ADMIN` và `JWT_REFRESH_TTL_POS`.
 - API dùng `apps/api/.env` (Prisma đọc trực tiếp); E2E dùng `apps/api/.env.test`.
