@@ -1,5 +1,6 @@
 import { BranchType, PrismaClient, Role } from '@prisma/client';
 import { hashPassword } from '../src/common/security/password';
+import { seedCatalog } from './seed-catalog';
 
 /**
  * Demo data (also used by E2E tests). Passwords are documented in README — development only.
@@ -85,9 +86,11 @@ export async function seedDatabase(prisma: PrismaClient): Promise<void> {
     });
   }
 
+  await seedCatalog(prisma, branchIds);
+
   await prisma.appMeta.upsert({
     where: { key: 'seed_version' },
-    update: { value: '1' },
-    create: { key: 'seed_version', value: '1' },
+    update: { value: '2' },
+    create: { key: 'seed_version', value: '2' },
   });
 }

@@ -34,8 +34,9 @@ model Branch {
   createdAt DateTime   @default(now()) @map("created_at")
   updatedAt DateTime   @updatedAt @map("updated_at")
 
-  users     User[]
-  auditLogs AuditLog[]
+  users      User[]
+  auditLogs  AuditLog[]
+  priceLists PriceList[]
 
   @@map("branches")
 }
@@ -132,4 +133,133 @@ model AuditLog {
   @@index([entity, entityId])
   @@index([userId])
   @@map("audit_logs")
+}
+
+// ---------- products module (REQ-PRD-01) ----------
+
+model Category {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @db.VarChar(100)
+  parentId  String?  @map("parent_id") @db.Uuid
+  /// Materialised path of ancestor ids incl. self: "/<root>/<child>/". Subtree = path LIKE '<path>%'.
+  path      String   @db.VarChar(1000)
+  sortOrder Int      @default(0) @map("sort_order")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryTree")
+  products Product[]
+
+  @@index([parentId])
+  @@index([path])
+  @@index([updatedAt])
+  @@map("categories")
+}
+
+model Product {
+  id           String   @id @default(uuid()) @db.Uuid
+  sku          String   @unique @db.VarChar(40)
+  name         String   @db.VarChar(150)
+  /// Lower-case, diacritics removed (normalizeSearch) for "sua" → "Sữa".
+  searchText   String   @map("search_text") @db.VarChar(400)
+  categoryId   String?  @map("category_id") @db.Uuid
+  unit         String   @db.VarChar(20)
+  /// VND (integer đồng).
+  defaultPrice Int      @map("default_price")
+  costPrice    Int      @default(0) @map("cost_price")
+  minStock     Int      @default(0) @map("min_stock")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  category Category?        @relation(fields: [categoryId], references: [id])
+  variants ProductVariant[]
+
+  @@index([categoryId])
+  @@index([searchText])
+  @@index([updatedAt])
+  @@map("products")
+}
+
+model ProductVariant {
+  id         String   @id @default(uuid()) @db.Uuid
+  productId  String   @map("product_id") @db.Uuid
+  sku        String   @unique @db.VarChar(40)
+  name       String   @db.VarChar(150)
+  searchText String   @map("search_text") @db.VarChar(400)
+  /// e.g. {"size":"400ml","màu":"Hồng"}
+  attributes Json     @default("{}")
+  /// CR-004: null → product.defaultPrice / costPrice / minStock.
+  price      Int?
+  costPrice  Int?     @map("cost_price")
+  minStock   Int?     @map("min_stock")
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  product        Product         @relation(fields: [productId], references: [id])
+  barcodes       Barcode[]
+  priceListItems PriceListItem[]
+
+  @@index([productId])
+  @@index([updatedAt])
+  @@map("product_variants")
+}
+
+model Barcode {
+  id        String    @id @default(uuid()) @db.Uuid
+  variantId String    @map("variant_id") @db.Uuid
+  code      String    @db.VarChar(32)
+  /// Soft delete so /sync/catalog can tell the POS to drop the code.
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  variant ProductVariant @relation(fields: [variantId], references: [id])
+
+  @@index([variantId])
+  @@index([updatedAt])
+  @@map("barcodes")
+}
+
+// ---------- pricing module (REQ-PRC-01) ----------
+
+model PriceList {
+  id            String    @id @default(uuid()) @db.Uuid
+  branchId      String    @map("branch_id") @db.Uuid
+  name          String    @db.VarChar(100)
+  /// Half-open [effectiveFrom, effectiveTo); null end = open-ended. No overlap per branch (exclusion constraint).
+  effectiveFrom DateTime  @map("effective_from") @db.Timestamptz(3)
+  effectiveTo   DateTime? @map("effective_to") @db.Timestamptz(3)
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  branch Branch          @relation(fields: [branchId], references: [id])
+  items  PriceListItem[]
+
+  @@index([branchId, effectiveFrom])
+  @@index([updatedAt])
+  @@map("price_lists")
+}
+
+model PriceListItem {
+  id          String    @id @default(uuid()) @db.Uuid
+  priceListId String    @map("price_list_id") @db.Uuid
+  variantId   String    @map("variant_id") @db.Uuid
+  /// VND (integer đồng).
+  price       Int
+  deletedAt   DateTime? @map("deleted_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  priceList PriceList      @relation(fields: [priceListId], references: [id])
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
+
+  @@unique([priceListId, variantId])
+  @@index([variantId])
+  @@index([updatedAt])
+  @@map("price_list_items")
 }
