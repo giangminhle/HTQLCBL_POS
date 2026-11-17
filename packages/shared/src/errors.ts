@@ -24,6 +24,11 @@ export const ErrorCode = {
   // Authorization
   BRANCH_FORBIDDEN: 'BRANCH_FORBIDDEN',
   ROLE_FORBIDDEN: 'ROLE_FORBIDDEN',
+  // Catalog / pricing (REQ-PRD-01, REQ-PRC-01)
+  PRICE_LIST_OVERLAP: 'PRICE_LIST_OVERLAP',
+  CATEGORY_CYCLE: 'CATEGORY_CYCLE',
+  CATEGORY_NOT_EMPTY: 'CATEGORY_NOT_EMPTY',
+  IMPORT_INVALID: 'IMPORT_INVALID',
 } as const;
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
 
