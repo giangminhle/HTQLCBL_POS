@@ -53,6 +53,22 @@ export interface ApiClient {
     body?: unknown,
     opts?: RequestOptions,
   ): Promise<T>;
+  put<T>(
+    path: string,
+    schema: z.ZodType<T, z.ZodTypeDef, unknown>,
+    body?: unknown,
+    opts?: RequestOptions,
+  ): Promise<T>;
+  delete<T>(path: string, schema: z.ZodType<T, z.ZodTypeDef, unknown>, opts?: RequestOptions): Promise<T>;
+  /** multipart/form-data POST (file upload). */
+  upload<T>(
+    path: string,
+    schema: z.ZodType<T, z.ZodTypeDef, unknown>,
+    form: FormData,
+    opts?: RequestOptions,
+  ): Promise<T>;
+  /** GET returning the raw text body (e.g. a CSV template). */
+  getText(path: string, opts?: RequestOptions): Promise<string>;
 }
 
 function buildQuery(query?: Record<string, QueryValue>): string {
@@ -78,14 +94,16 @@ export function createApiClient(baseUrl: string, options: ApiClientOptions | typ
   async function send<T>(
     method: string,
     path: string,
-    schema: z.ZodType<T, z.ZodTypeDef, unknown>,
+    schema: z.ZodType<T, z.ZodTypeDef, unknown> | 'text',
     body: unknown,
     ro: RequestOptions = {},
     isRetry = false,
   ): Promise<T> {
     const useAuth = ro.auth !== false;
-    const headers: Record<string, string> = { Accept: 'application/json' };
-    if (body !== undefined) headers['Content-Type'] = 'application/json';
+    const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
+    const headers: Record<string, string> = { Accept: schema === 'text' ? '*/*' : 'application/json' };
+    // FormData: let fetch set multipart/form-data with its boundary.
+    if (body !== undefined && !isForm) headers['Content-Type'] = 'application/json';
     const token = useAuth ? opts.getAccessToken?.() : undefined;
     if (token) headers.Authorization = `Bearer ${token}`;
 
@@ -94,7 +112,7 @@ export function createApiClient(baseUrl: string, options: ApiClientOptions | typ
       res = await fetchImpl(`${root}${path}${buildQuery(ro.query)}`, {
         method,
         headers,
-        body: body === undefined ? undefined : JSON.stringify(body),
+        body: body === undefined ? undefined : isForm ? (body as FormData) : JSON.stringify(body),
       });
     } catch {
       throw new ApiRequestError(0, {
@@ -107,6 +125,7 @@ export function createApiClient(baseUrl: string, options: ApiClientOptions | typ
       if (await opts.onUnauthorized()) return send(method, path, schema, body, ro, true);
     }
 
+    if (schema === 'text' && res.ok) return (await res.text()) as T;
     const json: unknown = res.status === 204 ? undefined : await res.json().catch(() => undefined);
     if (!res.ok) {
       const parsed = apiErrorSchema.safeParse(json);
@@ -115,6 +134,7 @@ export function createApiClient(baseUrl: string, options: ApiClientOptions | typ
         parsed.success ? parsed.data : { code: ErrorCode.INTERNAL_ERROR, message: `HTTP ${res.status}` },
       );
     }
+    if (schema === 'text') return json as T;
     const parsed = schema.safeParse(json);
     if (!parsed.success) {
       throw new ApiRequestError(res.status, {
@@ -130,5 +150,9 @@ export function createApiClient(baseUrl: string, options: ApiClientOptions | typ
     get: (path, schema, ro) => send('GET', path, schema, undefined, ro),
     post: (path, schema, body, ro) => send('POST', path, schema, body, ro),
     patch: (path, schema, body, ro) => send('PATCH', path, schema, body, ro),
+    put: (path, schema, body, ro) => send('PUT', path, schema, body, ro),
+    delete: (path, schema, ro) => send('DELETE', path, schema, undefined, ro),
+    upload: (path, schema, form, ro) => send('POST', path, schema, form, ro),
+    getText: (path, ro) => send<string>('GET', path, 'text', undefined, ro),
   };
 }
