@@ -8,7 +8,11 @@ import { ChangePasswordPage } from './pages/ChangePasswordPage';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { retry: false },
+  },
+});
 
 /** Routes by session status: an expired token never blocks selling (ADR-001, REQ-POS-05). */
 function RequireSession({ children }: { children: ReactNode }) {
@@ -25,31 +29,31 @@ function AutoRefresh() {
 
 export function PosRoutes() {
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/change-password" element={<ChangePasswordPage />} />
-      <Route
-        path="/"
-        element={
-          <RequireSession>
-            <HomePage />
-          </RequireSession>
-        }
-      />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <QueryClientProvider client={queryClient}>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/change-password" element={<ChangePasswordPage />} />
+        <Route
+          path="/"
+          element={
+            <RequireSession>
+              <HomePage />
+            </RequireSession>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </QueryClientProvider>
   );
 }
 
 export function App({ auth }: { auth: AuthSession }) {
   return (
     <AuthProvider auth={auth}>
-      <QueryClientProvider client={queryClient}>
-        <AutoRefresh />
-        <BrowserRouter>
-          <PosRoutes />
-        </BrowserRouter>
-      </QueryClientProvider>
+      <AutoRefresh />
+      <BrowserRouter>
+        <PosRoutes />
+      </BrowserRouter>
     </AuthProvider>
   );
 }

@@ -16,6 +16,9 @@ export const AuditAction = {
   COMPLETE: 'COMPLETE',
   SEND: 'SEND',
   RECEIVE: 'RECEIVE',
+  OPEN: 'OPEN',
+  CLOSE: 'CLOSE',
+  RETURN: 'RETURN',
 } as const;
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];
 
@@ -34,6 +37,9 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   COMPLETE: 'Hoàn thành',
   SEND: 'Gửi hàng',
   RECEIVE: 'Nhận hàng',
+  OPEN: 'Mở ca',
+  CLOSE: 'Chốt ca',
+  RETURN: 'Đổi trả',
 };
 
 export const auditLogSchema = z.object({
