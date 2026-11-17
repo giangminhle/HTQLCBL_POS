@@ -139,7 +139,7 @@ describe('ImportPage (REQ-PRD-01)', () => {
     ...okResult,
     ok: false,
     errors: [{ line: 3, field: 'barcodes', message: 'Mã 4006381333932 sai chữ số kiểm tra EAN-13' }],
-    errorReportCsv: '﻿product_sku,Lỗi\nA,barcodes: sai\n',
+    errorReportCsv: '\uFEFFproduct_sku,Lỗi\nA,barcodes: sai\n',
   };
 
   async function setup(responses: object[]) {

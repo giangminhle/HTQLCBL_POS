@@ -97,8 +97,41 @@ không chỉ ở giao diện.
 - Người dùng (trừ OWNER) thuộc đúng một chi nhánh. Không gán người dùng vào chi nhánh đã ngưng hoạt động.
 - Dữ liệu mẫu: 1 kho tổng (`KHO-TONG`) và 3 cửa hàng (`CH-01`, `CH-02`, `CH-03`).
 ### 3.3 Sản phẩm – REQ-PRD-01
+- **Danh mục**: cây nhiều cấp. Không chuyển danh mục vào chính nó hoặc danh mục con của nó. Chỉ xóa được danh mục trống;
+  danh mục còn dữ liệu thì ngưng hoạt động.
+- **Sản phẩm**: SKU (duy nhất), tên, danh mục, đơn vị tính, giá bán mặc định, giá vốn, tồn tối thiểu, trạng thái. Tiền là
+  số nguyên VND.
+- **Biến thể** (CR-004): mọi sản phẩm có ít nhất 1 biến thể; nếu không khai báo, hệ thống tạo biến thể mặc định có SKU
+  trùng SKU sản phẩm. Biến thể có SKU riêng, thuộc tính (dung tích, màu…), và có thể có giá bán, giá vốn, tồn tối thiểu
+  riêng; để trống thì lấy giá trị của sản phẩm. Biến thể bị bỏ khỏi sản phẩm được ngưng bán, không xóa.
+- **Mã vạch**: một biến thể có nhiều mã vạch; mã vạch duy nhất trong toàn chuỗi. Mã 8 hoặc 13 chữ số phải đúng chữ số kiểm
+  tra EAN-8/EAN-13; mã nội bộ 4–32 ký tự chữ/số.
+- **Đơn vị tính**: Sprint 2 một đơn vị cho mỗi sản phẩm. Quy đổi thùng/lốc/lon: CR-003 (hoãn).
+- **Tìm kiếm**: theo tên không phân biệt dấu ("sua" tìm được "Sữa"), theo SKU, theo mã vạch chính xác; lọc theo danh mục
+  (gồm danh mục con) và trạng thái. Tra nhanh theo mã vạch cho máy quét.
+- **Giá vốn**: CASHIER không bao giờ nhận được giá vốn (ẩn ở tầng serializer phía server, không có trong đồng bộ POS).
+  Các vai trò khác xem được.
+- **Phân quyền**: chỉ OWNER tạo/sửa danh mục, sản phẩm, import. Mọi vai trò được xem sản phẩm.
+- **Import CSV**: UTF-8 có hoặc không BOM, phân cách bằng dấu phẩy hoặc chấm phẩy, tối đa 5.000 dòng hoặc 2 MB. Mỗi dòng là
+  một biến thể, các dòng cùng `product_sku` là một sản phẩm; SKU đã có thì cập nhật. **Tất cả hoặc không có gì**: có lỗi thì
+  không ghi gì, trả lỗi theo dòng và cột, kèm file lỗi (CSV gốc thêm cột "Lỗi"). `dryRun=true` chỉ kiểm tra. Có file mẫu.
+
 ### 3.4 Bảng giá – REQ-PRC-01
-Giá bán lấy theo bảng giá chi nhánh; không có thì lấy giá mặc định của sản phẩm.
+- **Quy tắc giá (quy tắc 5, sửa theo CR-004)**: giá bán của một biến thể tại chi nhánh, thời điểm `at` =
+  1) giá trong bảng giá của chi nhánh đang hiệu lực tại `at`; nếu không có thì
+  2) `variant.price`; nếu để trống thì
+  3) `product.defaultPrice`.
+- **Hiệu lực**: khoảng nửa mở [ngày bắt đầu, ngày kết thúc); ngày kết thúc để trống = vô thời hạn. Hai bảng giá đang hoạt
+  động của cùng chi nhánh **không được chồng thời gian**; ràng buộc nằm ở CSDL nên hai yêu cầu gửi đồng thời cũng chỉ một
+  được chấp nhận. Vi phạm trả 409 kèm tên bảng giá bị chồng.
+- **Thao tác**: tạo bảng giá, sửa, "kết thúc bảng giá vào ngày X" (bảng mới có thể bắt đầu đúng ngày X), đặt/bỏ giá từng biến
+  thể, xem giá áp dụng tại một thời điểm.
+- **Phân quyền**: OWNER cho mọi chi nhánh; BRANCH_MANAGER chỉ chi nhánh mình; người khác chỉ xem chi nhánh mình.
+- **Kiểm soát**: mọi thay đổi giá (giá mặc định, giá vốn, giá biến thể, giá trong bảng giá) ghi nhật ký `PRICE_CHANGE` với
+  giá trước/sau. Giá bán thấp hơn giá vốn: cảnh báo, không chặn.
+- **Đồng bộ POS**: `GET /sync/catalog?branchId&since` trả danh mục, sản phẩm, biến thể, mã vạch (cả mã đã xóa), bảng giá của
+  chi nhánh kèm khoảng hiệu lực và các dòng giá thay đổi từ `since`; không có giá vốn. POS tính giá bằng chính hàm của
+  server (`resolveEffectivePrice` trong `packages/shared`) nên giá offline luôn khớp.
 
 ### 3.5 Kho – REQ-INV-01..04
 Tồn kho dạng sổ cái (IMPORT, SALE, RETURN, TRANSFER_OUT, TRANSFER_IN, ADJUSTMENT), `stock_balances` là cache cập nhật trong cùng transaction.

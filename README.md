@@ -73,6 +73,14 @@ pnpm dev
 Chi nhánh mẫu: `KHO-TONG` (kho tổng), `CH-01`, `CH-02`, `CH-03` (cửa hàng). Seed không ghi đè mật khẩu đã đổi.
 **Không dùng các mật khẩu này ở môi trường thật.**
 
+### Dữ liệu sản phẩm mẫu và import
+
+- Seed có 202 sản phẩm tạp hóa/mỹ phẩm (26 danh mục, 220 biến thể). Mã vạch là EAN-13 hợp lệ đầu số **20** (vùng GS1 dùng
+  nội bộ cửa hàng), nên không trùng với mã hàng thật.
+- CH-01 có 3 bảng giá mẫu: đã hết hạn, đang hiệu lực, sẽ áp dụng (để thử cả 3 trường hợp giá).
+- Nhập sản phẩm: Admin → **Nhập sản phẩm (CSV)** → tải file mẫu → Excel **Save As "CSV UTF-8"** → *Kiểm tra* → *Nhập*.
+  Có lỗi thì không dòng nào được nhập; tải "file lỗi" để xem lỗi ngay cạnh từng dòng.
+
 ### Test
 
 - `pnpm test` chạy unit test (Jest/Vitest) **và** E2E của API trên PostgreSQL thật.

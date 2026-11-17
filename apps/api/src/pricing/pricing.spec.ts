@@ -24,14 +24,12 @@ describe('PriceListsService.getEffectivePrice (REQ-PRC-01)', () => {
       priceListItem: { findMany: jest.fn().mockResolvedValue(entries) },
     };
     const products = {
-      getPricingBase: jest
-        .fn()
-        .mockResolvedValue({
-          variantId: 'v1',
-          variantPrice,
-          productDefaultPrice: 50_000,
-          effectiveCost: 30_000,
-        }),
+      getPricingBase: jest.fn().mockResolvedValue({
+        variantId: 'v1',
+        variantPrice,
+        productDefaultPrice: 50_000,
+        effectiveCost: 30_000,
+      }),
     };
     const service = new PriceListsService(
       prisma as never,

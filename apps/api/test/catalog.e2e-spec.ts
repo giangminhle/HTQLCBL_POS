@@ -259,7 +259,7 @@ describe('Catalog: categories, products, import (e2e)', () => {
 
     it('REQ-PRD-01: dryRun validates without writing; commit writes; all-or-nothing on errors', async () => {
       const good = [
-        '﻿' + header,
+        '\uFEFF' + header,
         `IMP-DG,Dầu gội nhập,Mỹ phẩm > Chăm sóc tóc,chai,90000,60000,5,IMP-DG-180,Dầu gội nhập 180ml,dung tích=180ml,50000,35000,,${ean(1)},1`,
         `IMP-DG,,,,,,,IMP-DG-370,Dầu gội nhập 370ml,dung tích=370ml,,,,${ean(2)},1`,
         `IMP-MI,Mì nhập,Thực phẩm > Mì gói,gói,4500,3500,20,,,,,,,${ean(3)},1`,

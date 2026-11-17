@@ -126,7 +126,7 @@ describe('buildErrorReport', () => {
     const parsed = parseCsv(csv('A1,Hàng A,,cái,45.000,,,,,,,,,,', 'B1,Hàng B,,cái,1000,,,,,,,,,,'));
     const { errors } = buildGroups(parsed.records);
     const report = buildErrorReport(parsed, errors);
-    expect(report.startsWith('﻿')).toBe(true);
+    expect(report.startsWith('\uFEFF')).toBe(true);
     const lines = report.slice(1).trim().split(/\r?\n/);
     expect(lines[0]).toMatch(/,Lỗi$/);
     expect(lines[1]).toMatch(/default_price: default_price phải là số nguyên/);
@@ -138,7 +138,9 @@ describe('importFailureMessage', () => {
   it('REQ-PRD-01: business errors are shown as-is, internal errors never leak details to the client', () => {
     const business = new ConflictException({ code: 'CONFLICT', message: 'SKU sản phẩm X đã tồn tại' });
     expect(importFailureMessage('X', business)).toBe('Sản phẩm X: SKU sản phẩm X đã tồn tại');
-    const internal = new Error('Invalid `tx.product.create()` invocation in C:\app\products.service.ts:211');
+    const internal = new Error(
+      'Invalid `tx.product.create()` invocation in /app/src/products.service.ts:211',
+    );
     const msg = importFailureMessage('X', internal);
     expect(msg).toBe('Sản phẩm X: lỗi hệ thống khi ghi dữ liệu, vui lòng thử lại hoặc báo quản trị');
     expect(msg).not.toMatch(/invocation|\.ts|prisma/i);

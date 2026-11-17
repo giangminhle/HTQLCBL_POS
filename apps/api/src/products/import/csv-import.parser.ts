@@ -31,7 +31,7 @@ const REQUIRED: ImportColumn[] = ['product_sku', 'product_name', 'unit', 'defaul
  * often saves with ";"). Never throws for content problems: they become line errors.
  */
 export function parseCsv(buffer: Buffer): ParsedCsv {
-  const text = buffer.toString('utf8').replace(/^﻿/, '');
+  const text = buffer.toString('utf8').replace(/^\uFEFF/, '');
   const firstLine = text.split(/\r?\n/, 1)[0] ?? '';
   const delimiter = (firstLine.match(/;/g)?.length ?? 0) > (firstLine.match(/,/g)?.length ?? 0) ? ';' : ',';
 
@@ -280,13 +280,13 @@ export function buildErrorReport(parsed: ParsedCsv, errors: ImportError[]): stri
   ];
   const headerErrors = byLine.get(1);
   if (headerErrors?.length) rows[0] = [...parsed.header, `Lỗi (tiêu đề): ${headerErrors.join(' | ')}`];
-  return '﻿' + stringify(rows);
+  return '\uFEFF' + stringify(rows);
 }
 
 /** Template offered for download on the import screen. */
 export function importTemplateCsv(): string {
   return (
-    '﻿' +
+    '\uFEFF' +
     stringify([
       [...IMPORT_COLUMNS],
       [

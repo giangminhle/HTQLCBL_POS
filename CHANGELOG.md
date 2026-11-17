@@ -4,6 +4,25 @@
 
 ## [Unreleased]
 
+### Added – Sprint 2
+- Danh mục sản phẩm dạng cây nhiều cấp; sản phẩm có biến thể (thuộc tính, giá/giá vốn/tồn tối thiểu riêng), nhiều mã vạch
+  EAN-8/13 kiểm tra chữ số; tìm theo tên không dấu, SKU, mã vạch. (REQ-PRD-01, CR-004)
+- Import sản phẩm từ CSV: tất cả-hoặc-không, `dryRun`, lỗi theo dòng, file lỗi, file mẫu. (REQ-PRD-01)
+- Bảng giá chi nhánh với khoảng hiệu lực [from, to), không chồng thời gian (ràng buộc DB), kết thúc vào ngày X; giá áp
+  dụng theo thứ tự bảng giá chi nhánh → giá biến thể → giá mặc định. (REQ-PRC-01, CR-004)
+- `GET /sync/catalog?branchId&since` cho POS offline (chuẩn bị REQ-POS-05).
+- Audit `PRICE_CHANGE` cho mọi thay đổi giá; cảnh báo giá bán < giá vốn.
+- Admin: Danh mục, Sản phẩm, Bảng giá, Nhập CSV.
+- Seed 202 sản phẩm tạp hóa/mỹ phẩm, mã EAN-13 hợp lệ; bảng giá mẫu CH-01.
+
+### Changed – Sprint 2
+- Quy tắc giá 5 (CR-004): thêm bậc `variant.price`.
+- Giá vốn (`costPrice`) không bao giờ trả cho CASHIER.
+
+### Fixed – Sprint 2
+- Đổi danh mục cha bị lỗi 500; import không còn trả chi tiết lỗi nội bộ cho người dùng.
+
+
 ### Added – Sprint 1
 - Đăng nhập JWT (access 15 phút, refresh xoay vòng: admin 7 ngày, POS 30 ngày cho CASHIER/BRANCH_MANAGER), khóa 15 phút
   sau 5 lần sai, đăng xuất, đổi mật khẩu, bắt đổi mật khẩu lần đầu. (REQ-AUTH-01)
