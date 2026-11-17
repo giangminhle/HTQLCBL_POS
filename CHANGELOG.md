@@ -12,6 +12,11 @@
 - In hóa đơn nhiệt chuẩn 80mm tối ưu bằng CSS `@media print`: trình bày tên cửa hàng, địa chỉ, mã số HĐ, chi tiết dòng hàng, giảm giá, phương thức thanh toán, tiền thừa và mã vạch. (REQ-POS-03)
 - Quy trình Đổi trả hàng (`SaleReturn`): tra cứu theo mã hóa đơn gốc, ràng buộc thời hạn 7 ngày, kiểm soát chặt chẽ số lượng trả không vượt số lượng đã mua trừ đi các lần đổi trả trước đó; tự động hoàn lại tồn kho chi nhánh bằng movement `RETURN` dương qua `InventoryService.applyMovements`, cập nhật trạng thái đơn hàng sang `RETURNED_PARTIAL` hoặc `RETURNED_FULL`. (REQ-POS-04)
 
+### Fixed – Sprint 4
+- Server enforces >10% discounts with a branch-scoped, five-minute manager JWT approval; approval failures use login lockout limits and are audited.
+- Concurrent duplicate sale IDs return the winning sale without duplicate stock movements; existing sales remain branch-scoped.
+- Sale and return codes use transaction-safe daily counters in Asia/Ho_Chi_Minh.
+
 ### Added – Sprint 3
 - Quản lý kho theo mô hình sổ cái (Ledger-based): bảng `stock_movements` (bất biến) và bảng cache `stock_balances`. (REQ-INV-01)
 - Hàm duy nhất ghi sổ `applyMovements(movements[], tx)` đồng thời cập nhật cả `stock_movements` và `stock_balances` với row-locking `SELECT ... FOR UPDATE` sắp xếp theo `${branchId}:${variantId}` chống race condition và triệt tiêu deadlock.
