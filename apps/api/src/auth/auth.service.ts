@@ -139,7 +139,11 @@ export class AuthService {
     if (!stored) throw invalid();
 
     if (stored.revokedAt) {
-      await this.handleReuse(stored.userId, ctx, now);
+      // Only a token that was already ROTATED (has a successor) signals theft: both the thief and the owner
+      // hold it. Tokens revoked by logout / password change / reset are simply dead — revoking every session
+      // for them would log the user out of the device where they just changed their password.
+      if (stored.replacedById) await this.handleReuse(stored.userId, ctx, now);
+      throw invalid();
     }
     if (stored.expiresAt <= now) {
       throw unauthorized(

@@ -213,9 +213,41 @@ describe('Auth (e2e)', () => {
         .post('/auth/refresh')
         .send({ refreshToken: s.refreshToken })
         .expect(401);
-      expect(after.body.code).toBe('REFRESH_TOKEN_REUSED'); // revoked token presented again
-      // logging in again works (reuse revoked sessions, not the account)
+      // A logged-out token is dead, but presenting it is not treated as theft (it was never rotated).
+      expect(after.body.code).toBe('INVALID_REFRESH_TOKEN');
       await login(app, 'warehouse01', PASSWORDS.warehouse);
+    });
+
+    it('REQ-AUTH-01: an old device refreshing after a password change does NOT kill the new session', async () => {
+      const pos = await login(app, 'accountant01', PASSWORDS.accountant, 'pos');
+      const admin = await login(app, 'accountant01', PASSWORDS.accountant);
+      const changed = await request(app.getHttpServer())
+        .post('/auth/change-password')
+        .set(bearer(admin.accessToken))
+        .send({ currentPassword: PASSWORDS.accountant, newPassword: 'Account@2027' })
+        .expect(200);
+
+      // the POS still holds its pre-change refresh token
+      const old = await request(app.getHttpServer())
+        .post('/auth/refresh')
+        .send({ refreshToken: pos.refreshToken })
+        .expect(401);
+      expect(old.body.code).toBe('INVALID_REFRESH_TOKEN');
+
+      // the session created by the password change keeps working
+      await request(app.getHttpServer()).get('/auth/me').set(bearer(changed.body.accessToken)).expect(200);
+      await request(app.getHttpServer())
+        .post('/auth/refresh')
+        .send({ refreshToken: changed.body.refreshToken })
+        .expect(200);
+
+      // restore the seeded password for other tests
+      const s = await login(app, 'accountant01', 'Account@2027');
+      await request(app.getHttpServer())
+        .post('/auth/change-password')
+        .set(bearer(s.accessToken))
+        .send({ currentPassword: 'Account@2027', newPassword: PASSWORDS.accountant })
+        .expect(200);
     });
   });
 

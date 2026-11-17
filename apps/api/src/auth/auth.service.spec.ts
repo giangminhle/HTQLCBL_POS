@@ -240,9 +240,22 @@ describe('AuthService', () => {
       expect(new Date(res.refreshTokenExpiresAt).getTime() - now.getTime()).toBe(30 * DAY);
     });
 
-    it('REQ-AUTH-01: reusing a revoked token revokes ALL sessions of the user and audits it', async () => {
+    it('REQ-AUTH-01: token revoked by logout/password change (not rotated) → 401, other sessions untouched', async () => {
+      // Bug found by E2E: an old device refreshing after a password change killed the new session.
+      const { service, refreshTokens, users, actions } = setup();
+      refreshTokens.findByToken.mockResolvedValue(storedToken({ revokedAt: new Date(), replacedById: null }));
+      const err = await errorOf(service.refresh('rt-logged-out', ctx));
+      expect(err).toMatchObject({ status: 401, code: 'INVALID_REFRESH_TOKEN' });
+      expect(users.revokeAllSessions).not.toHaveBeenCalled();
+      expect(refreshTokens.revokeAllForUser).not.toHaveBeenCalled();
+      expect(actions()).toEqual([]);
+    });
+
+    it('REQ-AUTH-01: reusing an already-ROTATED token revokes ALL sessions of the user and audits it', async () => {
       const { service, refreshTokens, users, state, actions } = setup();
-      refreshTokens.findByToken.mockResolvedValue(storedToken({ revokedAt: new Date() }));
+      refreshTokens.findByToken.mockResolvedValue(
+        storedToken({ revokedAt: new Date(), replacedById: 'rt-successor' }),
+      );
       const err = await errorOf(service.refresh('rt-old', ctx));
       expect(err).toMatchObject({ status: 401, code: 'REFRESH_TOKEN_REUSED' });
       expect(users.revokeAllSessions).toHaveBeenCalledWith('u1');
