@@ -74,10 +74,12 @@ export function Modal({
   title,
   onClose,
   children,
+  wide = false,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  wide?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -94,7 +96,7 @@ export function Modal({
         onClose();
       }}
       aria-label={title}
-      className="w-full max-w-lg rounded-lg p-0 shadow-xl backdrop:bg-slate-900/40"
+      className={`w-full ${wide ? 'max-w-5xl' : 'max-w-lg'} rounded-lg p-0 shadow-xl backdrop:bg-slate-900/40`}
     >
       <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
         <h2 className="font-semibold text-slate-800">{title}</h2>

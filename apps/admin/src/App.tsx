@@ -7,9 +7,13 @@ import { Layout } from './components/Layout';
 import { rolesFor } from './menu';
 import { AuditLogsPage } from './pages/AuditLogsPage';
 import { BranchesPage } from './pages/BranchesPage';
+import { CategoriesPage } from './pages/CategoriesPage';
 import { ChangePasswordPage } from './pages/ChangePasswordPage';
 import { HelloPage } from './pages/HelloPage';
+import { ImportPage } from './pages/ImportPage';
 import { LoginPage } from './pages/LoginPage';
+import { PriceListsPage } from './pages/PriceListsPage';
+import { ProductsPage } from './pages/ProductsPage';
 import { UsersPage } from './pages/UsersPage';
 
 const queryClient = new QueryClient({
@@ -37,6 +41,38 @@ export function App({ auth }: { auth: AuthSession }) {
                 element={
                   <RequireAuth roles={rolesFor('/branches')}>
                     <BranchesPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="categories"
+                element={
+                  <RequireAuth roles={rolesFor('/categories')}>
+                    <CategoriesPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="products"
+                element={
+                  <RequireAuth roles={rolesFor('/products')}>
+                    <ProductsPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="products/import"
+                element={
+                  <RequireAuth roles={rolesFor('/products/import')}>
+                    <ImportPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="price-lists"
+                element={
+                  <RequireAuth roles={rolesFor('/price-lists')}>
+                    <PriceListsPage />
                   </RequireAuth>
                 }
               />
