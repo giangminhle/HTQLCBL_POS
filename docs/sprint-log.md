@@ -40,9 +40,10 @@
 - **Mục tiêu:** Đăng nhập và phân quyền 5 vai trò, quản lý chi nhánh và người dùng, nhật ký thao tác; admin web và POS có
   đăng nhập; POS giữ phiên khi offline.
 - **REQ:** REQ-AUTH-01, REQ-AUTH-02 (mới, từ CR-002), REQ-BR-01, REQ-AUD-01; một phần REQ-POS-05 (phiên offline).
-- **Trạng thái:** ✅ **Hoàn thành tại máy** – `pnpm lint && pnpm test && pnpm build` qua (gồm E2E trên PostgreSQL).
-  Còn chờ: CI xanh trên GitHub; mục DoD "chạy bằng `docker compose up`" chưa kiểm chứng tại máy vì chưa có Docker (R-06),
-  hiện chỉ được kiểm tra gián tiếp qua job build image của CI.
+- **Trạng thái:** ✅ **Hoàn thành** – `pnpm lint && pnpm test && pnpm build` qua tại máy (PostgreSQL 18) và trên CI
+  (commit `8d9ae3e`, 2/2 job xanh: lint/test/build với E2E trên PostgreSQL 16, build image Docker).
+  Ngoại lệ DoD: "chạy bằng `docker compose up` với dữ liệu mẫu" chưa chạy thật vì chưa có Docker (R-06); image đã build
+  được trên CI. Kiểm chứng khi cài Docker (trước Sprint 8).
 
 ### Quyết định đã duyệt trước khi code
 | # | Quyết định | Ghi ở |
@@ -109,6 +110,5 @@
   thực sự đang kết nối khác `retailchain_test`. Có 7 unit test (`test/db-guard.spec.ts`).
 
 ### Tồn đọng
-- Push lên GitHub, chờ CI xanh (E2E trên PostgreSQL 16, build image Docker).
 - Kiểm chứng `docker compose up` khi cài Docker (trước Sprint 8).
 - Playwright E2E giao diện: để Sprint POS đầu tiên.
