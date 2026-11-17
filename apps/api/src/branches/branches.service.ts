@@ -78,4 +78,13 @@ export class BranchesService implements OnModuleInit {
     const branch = await this.prisma.branch.findUnique({ where: { id }, select: { isActive: true } });
     return branch?.isActive === true;
   }
+
+  /** Batch describe branch codes & names for other modules without crossing DB boundaries. */
+  async describeBranches(ids: string[]): Promise<Map<string, { code: string; name: string }>> {
+    const rows = await this.prisma.branch.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, code: true, name: true },
+    });
+    return new Map(rows.map((r) => [r.id, { code: r.code, name: r.name }]));
+  }
 }

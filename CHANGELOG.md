@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+### Added – Sprint 3
+- Quản lý kho theo mô hình sổ cái (Ledger-based): bảng `stock_movements` (bất biến) và bảng cache `stock_balances`. (REQ-INV-01)
+- Hàm duy nhất ghi sổ `applyMovements(movements[], tx)` đồng thời cập nhật cả `stock_movements` và `stock_balances` với row-locking `SELECT ... FOR UPDATE` sắp xếp theo `${branchId}:${variantId}` chống race condition và triệt tiêu deadlock.
+- Quản lý nhà cung cấp (`Supplier`) và phiếu nhập kho (`GoodsReceipt` DRAFT → COMPLETED tạo movement `IMPORT`). (REQ-INV-01)
+- Chuyển kho liên chi nhánh (`StockTransfer` DRAFT → SENT → RECEIVED): trừ kho xuất bằng `TRANSFER_OUT`, nhận kho đích bằng `TRANSFER_IN` với số lượng thực tế nhận được; tự tính chênh lệch nhận thiếu `shortageQuantity`. (REQ-INV-02)
+- Kiểm kê kho (`StockCount` DRAFT → COMPLETED): snapshot tồn sổ sách `systemQuantity`, ghi nhận số đếm thực tế `actualQuantity`, chốt phiếu tự động tính delta và tạo movement `ADJUSTMENT`. (REQ-INV-03)
+- Cảnh báo tồn tối thiểu `GET /inventory/low-stock` so sánh với `minStock` của biến thể hoặc sản phẩm. (REQ-INV-04)
+- Admin web: 5 màn hình quản lý kho gồm Nhà cung cấp, Nhập kho, Chuyển kho, Kiểm kê, Tồn kho & Cảnh báo tồn tối thiểu kèm modal Thẻ kho (Stock card) tra cứu lịch sử movement.
+- Concurrency test 50 lệnh trừ kho song song trên cùng một sản phẩm và invariant test `sum(StockMovement.quantity) === StockBalance.quantity`.
+
 ### Added – Sprint 2
 - Danh mục sản phẩm dạng cây nhiều cấp; sản phẩm có biến thể (thuộc tính, giá/giá vốn/tồn tối thiểu riêng), nhiều mã vạch
   EAN-8/13 kiểm tra chữ số; tìm theo tên không dấu, SKU, mã vạch. (REQ-PRD-01, CR-004)

@@ -13,6 +13,9 @@ export const AuditAction = {
   UPDATE: 'UPDATE',
   PRICE_CHANGE: 'PRICE_CHANGE',
   IMPORT: 'IMPORT',
+  COMPLETE: 'COMPLETE',
+  SEND: 'SEND',
+  RECEIVE: 'RECEIVE',
 } as const;
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];
 
@@ -28,6 +31,9 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   UPDATE: 'Cập nhật',
   PRICE_CHANGE: 'Đổi giá',
   IMPORT: 'Nhập dữ liệu',
+  COMPLETE: 'Hoàn thành',
+  SEND: 'Gửi hàng',
+  RECEIVE: 'Nhận hàng',
 };
 
 export const auditLogSchema = z.object({

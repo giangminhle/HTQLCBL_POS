@@ -7,6 +7,7 @@ export * from './catalog';
 export * from './csp';
 export * from './errors';
 export * from './health';
+export * from './inventory';
 export * from './http';
 export * from './pagination';
 export * from './pricing';

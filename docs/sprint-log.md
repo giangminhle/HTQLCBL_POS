@@ -185,3 +185,33 @@ tương lai cho CH-01 trong khi seed đã có bảng giá vô thời hạn (409 
 ### Tồn đọng
 - Phân trang `/sync/catalog` cùng client POS (Sprint 5).
 - CR-003 quy đổi đơn vị: xem lại sau Sprint 3.
+
+## Sprint 3 – Quản lý kho và sổ cái tồn kho (REQ-INV-01, REQ-INV-02, REQ-INV-03, REQ-INV-04)
+
+**Thời gian:** 17/11/2026.  
+**Mục tiêu:** Cài đặt quản lý kho theo mô hình sổ cái bất biến (Ledger-based Inventory):
+- REQ-INV-01: Quản lý nhà cung cấp, nhập kho (`GoodsReceipt`) tăng tồn kho qua movement `IMPORT`.
+- REQ-INV-02: Chuyển kho liên chi nhánh (`StockTransfer`) qua 3 trạng thái DRAFT → SENT (`TRANSFER_OUT`) → RECEIVED (`TRANSFER_IN`), tự tính và ghi nhận thiếu hụt `shortageQuantity`. Phân quyền nhận hàng theo chi nhánh đích.
+- REQ-INV-03: Kiểm kê kho (`StockCount`) chụp snapshot tồn sổ sách, nhập số lượng đếm thực tế, chốt phiếu tự động tính delta và tạo movement `ADJUSTMENT`.
+- REQ-INV-04: Cảnh báo tồn tối thiểu (`GET /inventory/low-stock`) so sánh với `minStock`, màn hình xem tồn kho, cảnh báo và Thẻ kho (Stock card tra cứu lịch sử movement).
+
+### Quyết định kỹ thuật
+| Quyết định | Lý do |
+|---|---|
+| `applyMovements(movements[], tx)` duy nhất ghi sổ | Đảm bảo tính nhất quán: mọi biến động đều ghi nhận đồng thời `StockMovement` và `StockBalance` trong cùng 1 transaction |
+| Row-locking với `SELECT ... FOR UPDATE` và sắp xếp theo `${branchId}:${variantId}` | Chống race condition (lost-update) và triệt tiêu hoàn toàn khả năng deadlock giữa các transaction chạy đồng thời |
+| Chuyển kho 2 pha SENT → RECEIVED | SENT trừ kho chi nhánh xuất (`TRANSFER_OUT`), RECEIVED tăng kho chi nhánh nhận (`TRANSFER_IN`) theo số lượng thực tế nhận được; hàng thất thoát không lọt vào kho đích |
+| Snapshot `systemQuantity` lúc tạo phiếu kiểm kê | Ghi lại chính xác tồn sổ sách tại thời điểm lập phiếu để đối soát với số đếm thực tế; lúc hoàn thành chốt delta = actual − system |
+| Tuân thủ ranh giới module (CLAUDE.md) | `InventoryService` không đọc trực tiếp bảng của `products`, `branches`, `users` mà sử dụng `describeVariants`, `describeBranches`, `describeUsers` |
+| Ràng buộc Check constraint `"quantity" != 0` trên `stock_movements` | Bảo vệ DB không bị rác bởi các dòng biến động vô nghĩa |
+
+### Kết quả kiểm chứng (tại máy, PostgreSQL 18.3)
+- `pnpm lint`: qua (0 lỗi, 16 cảnh báo `react-refresh/only-export-components`).
+- `pnpm test`: qua 100%.
+  - Unit: **184** (api 106, shared 34, admin 30, pos 14).
+  - E2E: **79** trên `retailchain_test` (gồm **50 lệnh trừ kho đồng thời trên cùng một sản phẩm**, test tính bất biến `sum(movement) === StockBalance`, test chuyển kho, kiểm kê, cảnh báo tồn, phân quyền chi nhánh).
+- `pnpm build`: qua toàn bộ 4 workspace package (@retailchain/shared, @retailchain/api, @retailchain/admin, @retailchain/pos).
+
+### Tồn đọng
+- Chuẩn bị Sprint 4: POS bán hàng và ca làm việc (REQ-POS-01..04, REQ-SHF-01).
+

@@ -134,7 +134,16 @@ không chỉ ở giao diện.
   server (`resolveEffectivePrice` trong `packages/shared`) nên giá offline luôn khớp.
 
 ### 3.5 Kho – REQ-INV-01..04
-Tồn kho dạng sổ cái (IMPORT, SALE, RETURN, TRANSFER_OUT, TRANSFER_IN, ADJUSTMENT), `stock_balances` là cache cập nhật trong cùng transaction.
+Tồn kho quản lý theo mô hình sổ cái (Ledger-based Inventory):
+- **Sổ cái biến động kho (`stock_movements`):** Bất biến (append-only), chỉ được thêm, không được sửa/xóa. Gồm các loại: `IMPORT` (nhập hàng), `SALE` (bán lẻ), `RETURN` (trả hàng), `TRANSFER_OUT` (xuất chuyển chi nhánh), `TRANSFER_IN` (nhập chuyển chi nhánh), `ADJUSTMENT` (điều chỉnh sau kiểm kê). Trường `quantity` mang giá trị số nguyên có dấu (dương khi tăng kho, âm khi giảm kho; có ràng buộc check constraint `"quantity" != 0`).
+- **Số dư tồn kho (`stock_balances`):** Cache lưu trữ số lượng tồn hiện thời theo từng cặp `(branchId, variantId)`. Mọi thao tác cập nhật đều đi qua hàm `applyMovements(movements[], tx)` duy nhất trong `InventoryService`, thực hiện khóa dòng (`SELECT ... FOR UPDATE` sắp xếp theo key `${branchId}:${variantId}` chống race condition và deadlock) để đảm bảo tính nhất quán tuyệt đối: `sum(stock_movements.quantity) === stock_balances.quantity`.
+
+**Các quy trình nghiệp vụ:**
+- **REQ-INV-01 (Nhập hàng từ nhà cung cấp):** Quản lý nhà cung cấp (`Supplier`). Phiếu nhập kho (`GoodsReceipt`) có trạng thái `DRAFT` → `COMPLETED`. Khi hoàn thành, tự động tạo các movement `IMPORT` và tăng số dư trong `stock_balances`.
+- **REQ-INV-02 (Chuyển kho liên chi nhánh):** Phiếu chuyển kho (`StockTransfer`) đi qua 3 trạng thái `DRAFT` → `SENT` → `RECEIVED`. Khi `SENT`, trừ tồn kho tại chi nhánh gửi bằng movement `TRANSFER_OUT`. Khi `RECEIVED`, kiểm tra đối soát số lượng nhận thực tế (`receivedQuantity`) với số lượng gửi (`quantity`), tự tính thiếu hụt `shortageQuantity`, và ghi nhận tăng kho tại chi nhánh đích bằng movement `TRANSFER_IN` tương ứng với số lượng thực nhận. Kiểm soát phân quyền: nhân viên quản lý chi nhánh chỉ được thao tác phiếu thuộc chi nhánh của mình.
+- **REQ-INV-03 (Kiểm kê và cân tồn):** Phiếu kiểm kê (`StockCount`) ở trạng thái `DRAFT` lưu giữ snapshot tồn sổ sách (`systemQuantity`). Nhân viên nhập số lượng đếm thực tế (`actualQuantity`). Khi chốt phiếu (`COMPLETED`), hệ thống tự tính chênh lệch `delta = actualQuantity - systemQuantity`, nếu delta khác 0 thì tự sinh movement `ADJUSTMENT` điều chỉnh `stock_balances`.
+- **REQ-INV-04 (Cảnh báo tồn tối thiểu & Thẻ kho):** Endpoint `GET /inventory/low-stock` so sánh tồn kho thực tế với ngưỡng `minStock` (ưu tiên `variant.minStock` rồi đến `product.minStock`), hiển thị danh sách cảnh báo trên web quản trị. Màn hình Thẻ kho (Stock card) hỗ trợ tra cứu toàn bộ lịch sử biến động sổ cái của từng biến thể sản phẩm tại một chi nhánh cụ thể theo mốc thời gian.
+
 
 ### 3.6 Bán hàng tại quầy – REQ-POS-01..05
 Hóa đơn COMPLETED bất biến; đổi trả tạo phiếu RETURN. Hóa đơn offline có id UUID v7 sinh tại máy, đồng bộ idempotent; server luôn nhận hóa đơn offline, tồn âm thì ghi cảnh báo `NEGATIVE_STOCK`.

@@ -20,6 +20,31 @@ export const MENU: readonly MenuItem[] = [
   },
   { to: '/products/import', label: 'Nhập sản phẩm (CSV)', roles: [Role.OWNER] },
   { to: '/price-lists', label: 'Bảng giá', roles: [Role.OWNER, Role.BRANCH_MANAGER] },
+  {
+    to: '/inventory/balances',
+    label: 'Tồn kho & Thẻ kho',
+    roles: [Role.OWNER, Role.BRANCH_MANAGER, Role.WAREHOUSE_KEEPER, Role.ACCOUNTANT],
+  },
+  {
+    to: '/inventory/receipts',
+    label: 'Nhập kho',
+    roles: [Role.OWNER, Role.BRANCH_MANAGER, Role.WAREHOUSE_KEEPER],
+  },
+  {
+    to: '/inventory/transfers',
+    label: 'Chuyển kho',
+    roles: [Role.OWNER, Role.BRANCH_MANAGER, Role.WAREHOUSE_KEEPER],
+  },
+  {
+    to: '/inventory/counts',
+    label: 'Kiểm kê',
+    roles: [Role.OWNER, Role.BRANCH_MANAGER, Role.WAREHOUSE_KEEPER],
+  },
+  {
+    to: '/suppliers',
+    label: 'Nhà cung cấp',
+    roles: [Role.OWNER, Role.BRANCH_MANAGER, Role.WAREHOUSE_KEEPER, Role.ACCOUNTANT],
+  },
   { to: '/users', label: 'Người dùng', roles: [Role.OWNER, Role.BRANCH_MANAGER] },
   { to: '/audit-logs', label: 'Nhật ký thao tác', roles: [Role.OWNER, Role.BRANCH_MANAGER] },
   { to: '/change-password', label: 'Đổi mật khẩu', roles: ALL },

@@ -360,18 +360,91 @@ export class ProductsService implements OnModuleInit {
     };
   }
 
-  /** sku/name/effective cost of variants, for price list screens and below-cost warnings. */
+  /** sku/name/effective cost of variants, for price list and inventory screens. */
   async describeVariants(ids: string[]) {
     const rows = await this.prisma.productVariant.findMany({
       where: { id: { in: ids } },
-      select: { id: true, sku: true, name: true, costPrice: true, product: { select: { costPrice: true } } },
+      select: {
+        id: true,
+        sku: true,
+        name: true,
+        costPrice: true,
+        minStock: true,
+        product: {
+          select: {
+            name: true,
+            unit: true,
+            costPrice: true,
+            minStock: true,
+          },
+        },
+      },
     });
     return new Map(
       rows.map((r) => [
         r.id,
-        { sku: r.sku, name: r.name, effectiveCost: r.costPrice ?? r.product.costPrice },
+        {
+          sku: r.sku,
+          name: r.name,
+          productName: r.product.name,
+          unit: r.product.unit,
+          minStock: r.minStock ?? r.product.minStock,
+          effectiveCost: r.costPrice ?? r.product.costPrice,
+        },
       ]),
     );
+  }
+
+  /** Find variant IDs matching a search text (for inventory balance search). */
+  async searchVariantIds(q: string): Promise<string[]> {
+    const variants = await this.prisma.productVariant.findMany({
+      where: {
+        OR: [
+          { sku: { contains: q, mode: 'insensitive' } },
+          { name: { contains: q, mode: 'insensitive' } },
+          { product: { name: { contains: q, mode: 'insensitive' } } },
+          { product: { sku: { contains: q, mode: 'insensitive' } } },
+          { barcodes: { some: { code: { contains: q }, deletedAt: null } } },
+        ],
+      },
+      select: { id: true },
+    });
+    return variants.map((v) => v.id);
+  }
+
+  /** Get all active variants that have minStock > 0, for low stock alerts. */
+  async getVariantsWithMinStock(): Promise<
+    Array<{ id: string; sku: string; name: string; productName: string; unit: string; minStock: number }>
+  > {
+    const rows = await this.prisma.productVariant.findMany({
+      where: {
+        isActive: true,
+        product: { isActive: true },
+      },
+      select: {
+        id: true,
+        sku: true,
+        name: true,
+        minStock: true,
+        product: {
+          select: {
+            name: true,
+            unit: true,
+            minStock: true,
+          },
+        },
+      },
+    });
+    return rows
+      .map((r) => ({
+        id: r.id,
+        sku: r.sku,
+        name: r.name,
+        productName: r.product.name,
+        unit: r.product.unit,
+        minStock: r.minStock ?? r.product.minStock,
+      }))
+      .filter((r) => r.minStock > 0);
   }
 
   /** Raw catalog changes for GET /sync/catalog. The sync module strips cost prices before responding. */

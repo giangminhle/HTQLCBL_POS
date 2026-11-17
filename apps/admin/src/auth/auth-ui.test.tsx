@@ -27,6 +27,11 @@ describe('role-based menu (REQ-AUTH-01)', () => {
       'Sản phẩm',
       'Nhập sản phẩm (CSV)',
       'Bảng giá',
+      'Tồn kho & Thẻ kho',
+      'Nhập kho',
+      'Chuyển kho',
+      'Kiểm kê',
+      'Nhà cung cấp',
       'Người dùng',
       'Nhật ký thao tác',
       'Đổi mật khẩu',
@@ -38,6 +43,11 @@ describe('role-based menu (REQ-AUTH-01)', () => {
       'Tổng quan',
       'Sản phẩm',
       'Bảng giá',
+      'Tồn kho & Thẻ kho',
+      'Nhập kho',
+      'Chuyển kho',
+      'Kiểm kê',
+      'Nhà cung cấp',
       'Người dùng',
       'Nhật ký thao tác',
       'Đổi mật khẩu',
@@ -45,9 +55,23 @@ describe('role-based menu (REQ-AUTH-01)', () => {
   });
 
   it('REQ-PRD-01: WAREHOUSE_KEEPER and ACCOUNTANT see products read-only; CASHIER has no admin catalog', () => {
-    for (const r of [Role.WAREHOUSE_KEEPER, Role.ACCOUNTANT]) {
-      expect(labels(r)).toEqual(['Tổng quan', 'Sản phẩm', 'Đổi mật khẩu']);
-    }
+    expect(labels(Role.WAREHOUSE_KEEPER)).toEqual([
+      'Tổng quan',
+      'Sản phẩm',
+      'Tồn kho & Thẻ kho',
+      'Nhập kho',
+      'Chuyển kho',
+      'Kiểm kê',
+      'Nhà cung cấp',
+      'Đổi mật khẩu',
+    ]);
+    expect(labels(Role.ACCOUNTANT)).toEqual([
+      'Tổng quan',
+      'Sản phẩm',
+      'Tồn kho & Thẻ kho',
+      'Nhà cung cấp',
+      'Đổi mật khẩu',
+    ]);
     expect(labels(Role.CASHIER)).toEqual(['Tổng quan', 'Đổi mật khẩu']);
   });
 

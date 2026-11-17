@@ -6,14 +6,19 @@ import { RequireAuth } from './auth/RequireAuth';
 import { Layout } from './components/Layout';
 import { rolesFor } from './menu';
 import { AuditLogsPage } from './pages/AuditLogsPage';
+import { BalancesPage } from './pages/BalancesPage';
 import { BranchesPage } from './pages/BranchesPage';
 import { CategoriesPage } from './pages/CategoriesPage';
 import { ChangePasswordPage } from './pages/ChangePasswordPage';
+import { GoodsReceiptsPage } from './pages/GoodsReceiptsPage';
 import { HelloPage } from './pages/HelloPage';
 import { ImportPage } from './pages/ImportPage';
 import { LoginPage } from './pages/LoginPage';
 import { PriceListsPage } from './pages/PriceListsPage';
 import { ProductsPage } from './pages/ProductsPage';
+import { StockCountsPage } from './pages/StockCountsPage';
+import { StockTransfersPage } from './pages/StockTransfersPage';
+import { SuppliersPage } from './pages/SuppliersPage';
 import { UsersPage } from './pages/UsersPage';
 
 const queryClient = new QueryClient({
@@ -73,6 +78,46 @@ export function App({ auth }: { auth: AuthSession }) {
                 element={
                   <RequireAuth roles={rolesFor('/price-lists')}>
                     <PriceListsPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="inventory/balances"
+                element={
+                  <RequireAuth roles={rolesFor('/inventory/balances')}>
+                    <BalancesPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="inventory/receipts"
+                element={
+                  <RequireAuth roles={rolesFor('/inventory/receipts')}>
+                    <GoodsReceiptsPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="inventory/transfers"
+                element={
+                  <RequireAuth roles={rolesFor('/inventory/transfers')}>
+                    <StockTransfersPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="inventory/counts"
+                element={
+                  <RequireAuth roles={rolesFor('/inventory/counts')}>
+                    <StockCountsPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="suppliers"
+                element={
+                  <RequireAuth roles={rolesFor('/suppliers')}>
+                    <SuppliersPage />
                   </RequireAuth>
                 }
               />

@@ -224,6 +224,182 @@ model Barcode {
   @@map("barcodes")
 }
 
+// ---------- inventory module (REQ-INV-01..04) ----------
+
+enum StockMovementType {
+  IMPORT
+  SALE
+  RETURN
+  TRANSFER_OUT
+  TRANSFER_IN
+  ADJUSTMENT
+}
+
+model Supplier {
+  id        String   @id @default(uuid()) @db.Uuid
+  code      String   @unique @db.VarChar(20)
+  name      String   @db.VarChar(100)
+  phone     String?  @db.VarChar(20)
+  email     String?  @db.VarChar(100)
+  address   String?  @db.VarChar(255)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  goodsReceipts GoodsReceipt[]
+
+  @@map("suppliers")
+}
+
+model StockMovement {
+  id        String            @id @default(uuid()) @db.Uuid
+  branchId  String            @map("branch_id") @db.Uuid
+  variantId String            @map("variant_id") @db.Uuid
+  type      StockMovementType
+  /// Signed: positive for inbound, negative for outbound.
+  quantity  Int
+  /// Source document type, e.g. "GoodsReceipt", "StockTransfer", "StockCount", "Sale".
+  refType   String?           @map("ref_type") @db.VarChar(50)
+  /// Source document id.
+  refId     String?           @map("ref_id") @db.Uuid
+  createdBy String            @map("created_by") @db.Uuid
+  createdAt DateTime          @default(now()) @map("created_at")
+
+  @@index([branchId, variantId, createdAt])
+  @@index([refType, refId])
+  @@map("stock_movements")
+}
+
+/// Cache of current stock per branch+variant. Updated in the same transaction as StockMovement.
+model StockBalance {
+  branchId  String   @map("branch_id") @db.Uuid
+  variantId String   @map("variant_id") @db.Uuid
+  quantity  Int      @default(0)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@id([branchId, variantId])
+  @@index([branchId])
+  @@map("stock_balances")
+}
+
+enum GoodsReceiptStatus {
+  DRAFT
+  COMPLETED
+}
+
+model GoodsReceipt {
+  id         String              @id @default(uuid()) @db.Uuid
+  code       String              @unique @db.VarChar(30)
+  supplierId String              @map("supplier_id") @db.Uuid
+  branchId   String              @map("branch_id") @db.Uuid
+  note       String?             @db.VarChar(500)
+  status     GoodsReceiptStatus  @default(DRAFT)
+  createdBy  String              @map("created_by") @db.Uuid
+  createdAt  DateTime            @default(now()) @map("created_at")
+  updatedAt  DateTime            @updatedAt @map("updated_at")
+
+  supplier Supplier           @relation(fields: [supplierId], references: [id])
+  items    GoodsReceiptItem[]
+
+  @@index([branchId])
+  @@index([supplierId])
+  @@map("goods_receipts")
+}
+
+model GoodsReceiptItem {
+  id        String @id @default(uuid()) @db.Uuid
+  receiptId String @map("receipt_id") @db.Uuid
+  variantId String @map("variant_id") @db.Uuid
+  quantity  Int
+  /// VND per unit at time of receipt.
+  unitCost  Int    @map("unit_cost")
+
+  receipt GoodsReceipt @relation(fields: [receiptId], references: [id])
+
+  @@index([receiptId])
+  @@map("goods_receipt_items")
+}
+
+enum StockTransferStatus {
+  DRAFT
+  SENT
+  RECEIVED
+}
+
+model StockTransfer {
+  id           String              @id @default(uuid()) @db.Uuid
+  code         String              @unique @db.VarChar(30)
+  fromBranchId String              @map("from_branch_id") @db.Uuid
+  toBranchId   String              @map("to_branch_id") @db.Uuid
+  note         String?             @db.VarChar(500)
+  status       StockTransferStatus @default(DRAFT)
+  sentBy       String?             @map("sent_by") @db.Uuid
+  sentAt       DateTime?           @map("sent_at")
+  receivedBy   String?             @map("received_by") @db.Uuid
+  receivedAt   DateTime?           @map("received_at")
+  createdBy    String              @map("created_by") @db.Uuid
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+
+  items StockTransferItem[]
+
+  @@index([fromBranchId])
+  @@index([toBranchId])
+  @@map("stock_transfers")
+}
+
+model StockTransferItem {
+  id               String @id @default(uuid()) @db.Uuid
+  transferId       String @map("transfer_id") @db.Uuid
+  variantId        String @map("variant_id") @db.Uuid
+  sentQuantity     Int    @map("sent_quantity")
+  /// Set when RECEIVED. May differ from sentQuantity (shortage on receive).
+  receivedQuantity Int?   @map("received_quantity")
+
+  transfer StockTransfer @relation(fields: [transferId], references: [id])
+
+  @@index([transferId])
+  @@map("stock_transfer_items")
+}
+
+enum StockCountStatus {
+  DRAFT
+  COMPLETED
+}
+
+model StockCount {
+  id          String           @id @default(uuid()) @db.Uuid
+  code        String           @unique @db.VarChar(30)
+  branchId    String           @map("branch_id") @db.Uuid
+  note        String?          @db.VarChar(500)
+  status      StockCountStatus @default(DRAFT)
+  createdBy   String           @map("created_by") @db.Uuid
+  completedBy String?          @map("completed_by") @db.Uuid
+  completedAt DateTime?        @map("completed_at")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  items StockCountItem[]
+
+  @@index([branchId])
+  @@map("stock_counts")
+}
+
+model StockCountItem {
+  id             String @id @default(uuid()) @db.Uuid
+  countId        String @map("count_id") @db.Uuid
+  variantId      String @map("variant_id") @db.Uuid
+  /// System stock at the time the count was created.
+  systemQuantity Int    @map("system_quantity")
+  /// Actual count entered by the user.
+  actualQuantity Int?   @map("actual_quantity")
+
+  count StockCount @relation(fields: [countId], references: [id])
+
+  @@index([countId])
+  @@map("stock_count_items")
+}
+
 // ---------- pricing module (REQ-PRC-01) ----------
 
 model PriceList {
